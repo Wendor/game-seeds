@@ -113,7 +113,6 @@ const handleCellClick = (index: number) => {
 
   if (selectedIndex.value === null) {
     playSound('select');
-    haptic.soft();
     cell.status = 'selected';
     selectedIndex.value = index;
     neighborIndices.value = findNeighbors(index);
@@ -121,8 +120,6 @@ const handleCellClick = (index: number) => {
   }
 
   if (selectedIndex.value === index) {
-    playSound('select');
-    haptic.soft();
     cell.status = 'active';
     selectedIndex.value = null;
     return;
@@ -316,14 +313,38 @@ const shareResult = async () => {
 
 <style scoped>
 .screen-game { display: flex; flex-direction: column; min-height: 100vh; background-color: var(--bg-main); }
-.header { position: sticky; top: 0; z-index: 10; background: var(--header-bg); padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px); }
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 30;
+  background: var(--header-bg);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(8px);
+}
 .stats { font-size: 0.9rem; color: var(--text-muted); }
 .stats strong { color: var(--text-main); font-size: 1.1rem; }
 .timer { font-family: monospace; font-size: 1.2rem; font-weight: 700; color: #3b82f6; background: #eff6ff; padding: 4px 12px; border-radius: 20px; }
 .timer.finished { color: #10b981; background: #ecfdf5; }
 :global(body.dark-mode) .timer { background: #1e3a8a; color: #93c5fd; }
 :global(body.dark-mode) .timer.finished { background: #064e3b; color: #34d399; }
-.grid-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 15px; width: 100%; box-sizing: border-box; content-visibility: auto; contain-intrinsic-size: 1000px; }
+.grid-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  padding-top: 80px;
+  width: 100%;
+  box-sizing: border-box;
+  content-visibility: auto;
+  contain-intrinsic-size: 1000px;
+}
 .grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; width: 100%; max-width: 500px; }
 .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 600; border-radius: 8px; background: var(--cell-bg); border: 1px solid var(--cell-border); color: var(--cell-text); cursor: pointer; user-select: none; touch-action: manipulation; transition: all 0.15s ease-out; }
 .cell.selected { background-color: #3b82f6; color: white; border-color: #3b82f6; transform: scale(0.95); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); z-index: 2; }
