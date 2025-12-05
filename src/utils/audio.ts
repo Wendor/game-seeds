@@ -6,13 +6,13 @@ let isMuted = false;
 // Вы можете найти любые mp3 в интернете, например на freesound.org
 // Назовите их: pop.mp3, success.mp3, win.mp3, error.mp3, click.mp3
 const soundFiles = {
-    select: '/sounds/pop.mp3',      // Клик по ячейке
-    match: '/sounds/success.mp3',   // Успешная пара
-    error: '/sounds/error.mp3',     // Не совпало
-    add: '/sounds/click.mp3',       // Добавление строк
-    win: '/sounds/win.mp3',         // Победа
-    undo: '/sounds/pop.mp3',        // Отмена
-    restart: '/sounds/click.mp3',   // Рестарт
+    select: 'sounds/pop.mp3',      // Клик по ячейке
+    match: 'sounds/success.mp3',   // Успешная пара
+    error: 'sounds/error.mp3',     // Не совпало
+    add: 'sounds/click.mp3',       // Добавление строк
+    win: 'sounds/win.mp3',         // Победа
+    undo: 'sounds/pop.mp3',        // Отмена
+    restart: 'sounds/click.mp3',   // Рестарт
 };
 
 // Предзагрузка звуков
@@ -23,7 +23,7 @@ export const initSounds = () => {
 
     for (const [key, path] of Object.entries(soundFiles)) {
         const audio = new Audio(path);
-        audio.volume = 0.5; // Громкость 50%
+        audio.volume = 0.7; // Громкость 50%
         sounds[key] = audio;
     }
 };
