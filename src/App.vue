@@ -94,7 +94,7 @@ const handleContinueGame = () => {
   --bg-main: #ffffff;
   --bg-secondary: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); /* Фон меню */
   --text-main: #1f2937;
-  --text-muted: #d7dde6;
+  --text-muted: #64748b;
   
   --cell-bg: #f9fafb;
   --cell-border: #e5e7eb;
@@ -116,7 +116,7 @@ body.dark-mode {
   --bg-main: #0f172a; /* Темно-синий фон */
   --bg-secondary: #0f172a; 
   --text-main: #f1f5f9;
-  --text-muted: #293b54;
+  --text-muted: #94a3b8;
   
   --cell-bg: #1e293b;
   --cell-border: #334155;
