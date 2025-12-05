@@ -11,7 +11,7 @@
     <header class="header">
       <button @click="$emit('back')" class="btn btn-secondary btn-sm">← Меню</button>
       <div class="timer" :class="{ finished: isGameOver }">⏱ {{ formattedTime }}</div>
-      <div class="stats">Осталось: <strong>{{ activeCount }}</strong></div>
+      <div class="stats">всего: <strong>{{ activeCount }}</strong></div>
     </header>
 
     <main class="grid-container">
@@ -19,12 +19,7 @@
         <div 
           v-for="(cell, index) in cells" :key="cell.id"
           class="cell"
-          :class="{
-            'crossed': cell.status === 'crossed',
-            'selected': cell.status === 'selected',
-            'active': cell.status === 'active',
-            'hint': hintIndices.includes(index)
-          }"
+          :class="getCellClasses(cell, index)"
           @click="handleCellClick(index)"
         >
           {{ cell.value }}
@@ -43,17 +38,17 @@
     </main>
 
     <footer class="controls">
-      <button @click="showRestartModal = true" class="btn btn-secondary btn-icon" title="Рестарт">↺</button>
-      <button @click="performUndo" class="btn btn-secondary btn-icon" :disabled="!hasHistory() || isGameOver" title="Отмена">↩️</button>
-      <button @click="showNextHint" class="btn btn-secondary btn-icon" :disabled="isGameOver" title="Подсказка">💡</button>
-      <button @click="performAddLines" :disabled="isGameOver" class="btn btn-primary btn-lg">Добавить (+{{ activeCount }})</button>
+      <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver" title="Отмена">↶</button>
+      <button @click="showNextHint" class="btn btn-secondary btn-icon icon-text" :disabled="isGameOver" title="Подсказка">✦</button>
+      <button @click="performAddLines" :disabled="isGameOver" class="btn btn-primary btn-lg">Добавить</button>
+      <button @click="showRestartModal = true" class="btn btn-danger btn-icon" title="Рестарт">↺</button>
     </footer>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import type { GameMode, SavedGameState, GameRecord } from '../types';
+import type { GameMode, SavedGameState, GameRecord, Cell } from '../types';
 
 import { useGameLogic } from '../composables/useGameLogic';
 import { useTimer } from '../composables/useTimer';
@@ -68,12 +63,17 @@ import { haptic } from '../utils/haptics';
 const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
 defineEmits(['back']);
 
-const { cells, nextId, generateCells, restoreCells, canMatch, addLines, findHint } = useGameLogic();
+const { 
+  cells, nextId, generateCells, restoreCells, 
+  canMatch, addLines, findHint, cleanEmptyRows, findNeighbors 
+} = useGameLogic();
+
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
 const { saveSnapshot, undo, clearHistory, hasHistory, history } = useHistory(cells);
 
 const selectedIndex = ref<number | null>(null);
 const hintIndices = ref<number[]>([]);
+const neighborIndices = ref<number[]>([]);
 const nextHintStartIndex = ref(0);
 const showRestartModal = ref(false);
 const toastMessage = ref<string | null>(null);
@@ -83,10 +83,28 @@ let hintTimeout: number | null = null;
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => cells.value.length > 0 && activeCount.value === 0);
 
+// --- Хелпер для классов (чтобы не загромождать template) ---
+const getCellClasses = (cell: Cell, index: number) => {
+  const isNeighbor = neighborIndices.value.includes(index);
+  // Проверяем, является ли этот сосед "совпадающим" с выбранной ячейкой
+  const isMatchable = isNeighbor && selectedIndex.value !== null && canMatch(selectedIndex.value, index);
+
+  return {
+    'crossed': cell.status === 'crossed',
+    'selected': cell.status === 'selected',
+    'active': cell.status === 'active',
+    'hint': hintIndices.value.includes(index),
+    'neighbor': isNeighbor && !isMatchable, // Синий пунктир (просто сосед)
+    'neighbor-match': isMatchable            // Желтый пунктир (можно схлопнуть!)
+  };
+};
+
 // --- Действия ---
 
 const handleCellClick = (index: number) => {
   clearHintUI();
+  neighborIndices.value = [];
+
   const cell = cells.value[index];
   if (!cell || cell.status === 'crossed') return;
 
@@ -95,6 +113,7 @@ const handleCellClick = (index: number) => {
     haptic.soft();
     cell.status = 'selected';
     selectedIndex.value = index;
+    neighborIndices.value = findNeighbors(index);
     return;
   }
 
@@ -117,12 +136,23 @@ const handleCellClick = (index: number) => {
     cell.status = 'crossed';
     selectedIndex.value = null;
     nextHintStartIndex.value = 0;
+
+    setTimeout(() => {
+      const removedCount = cleanEmptyRows();
+      if (removedCount > 0) {
+        showToast(removedCount === 1 ? 'Ряд очищен!' : `Убрано рядов: ${removedCount}`);
+        playSound('add');
+      }
+    }, 300);
+
   } else {
     playSound('error');
     haptic.medium();
     if (prevCell) prevCell.status = 'active';
+    
     cell.status = 'selected';
     selectedIndex.value = index;
+    neighborIndices.value = findNeighbors(index);
   }
 };
 
@@ -131,13 +161,14 @@ const performUndo = () => {
     playSound('undo');
     haptic.medium();
     selectedIndex.value = null;
+    neighborIndices.value = [];
     clearHintUI();
     nextHintStartIndex.value = 0;
   }
 };
 
 const performAddLines = () => {
-  if (cells.value.length >= 2000) {
+  if (cells.value.length >= 4000) {
     showToast('Слишком много цифр! Очистите поле.');
     haptic.medium();
     return;
@@ -149,9 +180,9 @@ const performAddLines = () => {
   playSound('add');
   haptic.impact();
   clearHintUI();
+  neighborIndices.value = [];
   nextHintStartIndex.value = 0;
   
-  // Исправление ошибки 1: Проверяем существование ячейки перед обращением
   if (selectedIndex.value !== null) {
     const cell = cells.value[selectedIndex.value];
     if (cell) cell.status = 'active';
@@ -162,34 +193,25 @@ const performAddLines = () => {
   showToast(`Добавлено ${count} цифр`);
 };
 
-// --- Подсказки ---
 const showNextHint = () => {
   clearHintUI();
+  neighborIndices.value = [];
   
-  // Ищем подсказку
   let hint = findHint(nextHintStartIndex.value);
-  
-  // Если не нашли с текущей позиции, пробуем сначала
   if (!hint && nextHintStartIndex.value > 0) {
     hint = findHint(0);
   }
 
-  // ИСПРАВЛЕНИЕ:
-  // Проверяем, что hint существует (не null)
-  // И что первый элемент массива является числом (typeof ... === 'number')
   if (hint && typeof hint[0] === 'number') {
-    const firstIndex = hint[0]; // Теперь TS уверен, что это number
-
+    const firstIndex = hint[0];
     hintIndices.value = hint;
     nextHintStartIndex.value = firstIndex + 1;
     
-    // Безопасное обращение к DOM
     const el = document.querySelectorAll('.cell')[firstIndex];
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
     hintTimeout = setTimeout(() => { hintIndices.value = []; }, 2000);
   } else {
-    // Если hint === null или массив пустой
     showToast('Ходов нет! Жми "Добавить"');
     nextHintStartIndex.value = 0;
   }
@@ -200,8 +222,6 @@ const clearHintUI = () => {
   if (hintTimeout) clearTimeout(hintTimeout);
 };
 
-// --- Save/Load ---
-
 const saveGameState = () => {
   if (isGameOver.value) { localStorage.removeItem('seeds-save'); return; }
   
@@ -210,7 +230,7 @@ const saveGameState = () => {
     time: secondsElapsed.value,
     mode: props.mode,
     history: history.value,
-    nextId: nextId.value // Исправление: теперь используем .value, т.к. это ref
+    nextId: nextId.value
   };
   localStorage.setItem('seeds-save', JSON.stringify(state));
 };
@@ -219,6 +239,7 @@ const initGame = () => {
   selectedIndex.value = null;
   clearHintUI();
   clearHistory();
+  neighborIndices.value = [];
   
   if (props.resume) {
     const saved = localStorage.getItem('seeds-save');
@@ -228,8 +249,6 @@ const initGame = () => {
         restoreCells(parsed.cells, parsed.nextId || 1000);
         resetTimer(parsed.time);
         if (parsed.history) {
-            // Восстанавливаем историю. Так как history это ref внутри useHistory,
-            // мы можем очистить и заполнить его
             clearHistory();
             parsed.history.forEach((h: string) => history.value.push(h));
         }
@@ -248,11 +267,9 @@ const initGame = () => {
 const confirmRestart = () => {
   playSound('restart');
   localStorage.removeItem('seeds-save');
-  initGame(); // Перезапуск
+  initGame();
   showRestartModal.value = false;
 };
-
-// --- Watchers ---
 
 watch([cells, secondsElapsed], () => saveGameState(), { deep: true });
 
@@ -273,7 +290,6 @@ watch(isGameOver, (val) => {
 onMounted(initGame);
 onUnmounted(stopTimer);
 
-// UI Helpers
 const showToast = (msg: string) => {
   if (toastTimer) clearTimeout(toastTimer);
   toastMessage.value = msg;
@@ -302,8 +318,50 @@ const shareResult = async () => {
 .cell.selected { background-color: #3b82f6; color: white; border-color: #3b82f6; transform: scale(0.95); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); z-index: 2; }
 .cell.crossed { background-color: transparent; color: var(--text-muted); opacity: 0.2; border-color: transparent; text-decoration: line-through; cursor: default; }
 .cell.hint { background-color: #fde047; color: #854d0e; border-color: #eab308; animation: pulse 1s infinite; z-index: 3; }
+
+/* Обычный сосед (СИНИЙ пунктир) - показывает связь */
+.cell.neighbor {
+  border: 2px dashed rgba(59, 130, 246, 0.5); 
+  background-color: rgba(59, 130, 246, 0.05);
+  animation: pulse-border-blue 1.5s infinite;
+}
+
+/* Сосед, с которым можно схлопнуть (ЖЕЛТЫЙ пунктир) - призыв к действию */
+.cell.neighbor-match {
+  border: 2px dashed #eab308;
+  background-color: rgba(253, 224, 71, 0.15);
+  animation: pulse-border-yellow 1.5s infinite;
+  z-index: 1;
+}
+
+/* Темная тема */
+:global(body.dark-mode) .cell.neighbor {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: rgba(147, 197, 253, 0.4);
+}
+:global(body.dark-mode) .cell.neighbor-match {
+  background-color: rgba(234, 179, 8, 0.15);
+  border-color: rgba(250, 204, 21, 0.5);
+}
+
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+@keyframes pulse-border-blue {
+  0% { border-color: rgba(59, 130, 246, 0.3); }
+  50% { border-color: rgba(59, 130, 246, 0.7); }
+  100% { border-color: rgba(59, 130, 246, 0.3); }
+}
+
+@keyframes pulse-border-yellow {
+  0% { border-color: rgba(234, 179, 8, 0.3); }
+  50% { border-color: rgba(234, 179, 8, 0.9); }
+  100% { border-color: rgba(234, 179, 8, 0.3); }
+}
+
 .controls { position: fixed; bottom: 0; left: 0; width: 100%; padding: 12px 16px 20px 16px; background: var(--header-bg); border-top: 1px solid var(--border-color); z-index: 20; display: flex; justify-content: center; gap: 12px; box-sizing: border-box; }
+.icon-text { font-size: 1.6rem; line-height: 1; padding-bottom: 2px; }
+.btn-danger { background-color: #ef4444; color: white; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2); font-size: 1.5rem; line-height: 1;}
+.btn-danger:hover { background-color: #dc2626; }
 .spacer { height: 100px; width: 100%; }
 .win-message { margin: 30px 0; font-size: 2rem; color: #10b981; font-weight: 800; text-align: center; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .win-actions { display: flex; gap: 10px; margin-top: 10px; }
@@ -311,5 +369,5 @@ const shareResult = async () => {
 .btn-success:hover { background-color: #059669; }
 @keyframes popIn { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
 .final-time { font-size: 1.2rem; color: var(--text-main); font-weight: 600; }
-@media (min-width: 768px) { .grid { gap: 8px; max-width: 600px; } .cell { font-size: 1.5rem; border-radius: 12px; } .cell:hover:not(.crossed):not(.selected):not(.hint) { background-color: var(--btn-sec-bg); border-color: #3b82f6; transform: translateY(-1px); } .controls { padding-bottom: 12px; } }
+@media (min-width: 768px) { .grid { gap: 8px; max-width: 600px; } .cell { font-size: 1.5rem; border-radius: 12px; } .cell:hover:not(.crossed):not(.selected):not(.hint):not(.neighbor):not(.neighbor-match) { background-color: var(--btn-sec-bg); border-color: #3b82f6; transform: translateY(-1px); } .controls { padding-bottom: 12px; } }
 </style>

@@ -102,6 +102,82 @@ export function useGameLogic() {
         return null;
     };
 
+    // === НОВАЯ ФУНКЦИЯ: Очистка пустых строк ===
+    const cleanEmptyRows = (): number => {
+        const ROW_SIZE = 9;
+        let rowsRemoved = 0;
+        const newCells: Cell[] = [];
+        let hasChanges = false;
+
+        // Проходим по массиву блоками по 9 ячеек
+        for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
+            const chunk = cells.value.slice(i, i + ROW_SIZE);
+
+            // Если блок полный (9 шт) и ВСЕ зачеркнуты
+            const isEmptyRow = chunk.length === ROW_SIZE && chunk.every(c => c.status === 'crossed');
+
+            if (isEmptyRow) {
+                hasChanges = true;
+                rowsRemoved++;
+            } else {
+                // Если строка не пустая (или неполная последняя), оставляем её
+                newCells.push(...chunk);
+            }
+        }
+
+        // Если были удаления, обновляем массив
+        if (hasChanges) {
+            cells.value = newCells;
+        }
+
+        return rowsRemoved;
+    };
+
+    // === НОВАЯ ФУНКЦИЯ: Поиск соседей для подсветки ===
+    const findNeighbors = (index: number): number[] => {
+        const neighbors: number[] = [];
+        const len = cells.value.length;
+        const ROW_SIZE = 9;
+
+        // 1. Ищем соседа СПРАВА (линейно)
+        for (let i = index + 1; i < len; i++) {
+            const cell = cells.value[i]; // Исправление ошибки TS2532
+            if (cell && cell.status !== 'crossed') {
+                neighbors.push(i);
+                break; // Нашли ближайшего - стоп
+            }
+        }
+
+        // 2. Ищем соседа СЛЕВА (линейно)
+        for (let i = index - 1; i >= 0; i--) {
+            const cell = cells.value[i]; // Исправление ошибки TS2532
+            if (cell && cell.status !== 'crossed') {
+                neighbors.push(i);
+                break;
+            }
+        }
+
+        // 3. Ищем соседа СНИЗУ (вертикально по колонкам)
+        for (let i = index + ROW_SIZE; i < len; i += ROW_SIZE) {
+            const cell = cells.value[i]; // Исправление ошибки TS2532
+            if (cell && cell.status !== 'crossed') {
+                neighbors.push(i);
+                break;
+            }
+        }
+
+        // 4. Ищем соседа СВЕРХУ (вертикально по колонкам)
+        for (let i = index - ROW_SIZE; i >= 0; i -= ROW_SIZE) {
+            const cell = cells.value[i]; // Исправление ошибки TS2532
+            if (cell && cell.status !== 'crossed') {
+                neighbors.push(i);
+                break;
+            }
+        }
+
+        return neighbors;
+    };
+
     return {
         cells,
         nextId,
@@ -109,6 +185,8 @@ export function useGameLogic() {
         restoreCells,
         canMatch,
         addLines,
-        findHint
+        findHint,
+        cleanEmptyRows,
+        findNeighbors
     };
 }
