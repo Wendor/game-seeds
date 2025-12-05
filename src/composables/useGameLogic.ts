@@ -9,7 +9,6 @@ const SEQUENCE_CLASSIC = [
 
 export function useGameLogic() {
     const cells = ref<Cell[]>([]);
-    // Исправление: делаем ref, чтобы значение обновлялось везде
     const nextId = ref(0);
 
     // --- Helpers ---
@@ -18,7 +17,6 @@ export function useGameLogic() {
         const end = Math.max(idx1, idx2);
         for (let i = start + 1; i < end; i++) {
             const cell = cells.value[i];
-            // Исправление: проверка на существование cell
             if (cell && cell.status !== 'crossed') return false;
         }
         return true;
@@ -32,7 +30,6 @@ export function useGameLogic() {
         const end = Math.max(idx1, idx2);
         for (let i = start + 9; i < end; i += 9) {
             const cell = cells.value[i];
-            // Исправление: проверка на существование cell
             if (cell && cell.status !== 'crossed') return false;
         }
         return true;
@@ -43,7 +40,6 @@ export function useGameLogic() {
         const c1 = cells.value[idx1];
         const c2 = cells.value[idx2];
 
-        // Исправление: строгая проверка на undefined
         if (!c1 || !c2) return false;
         if (c1.status === 'crossed' || c2.status === 'crossed') return false;
 
@@ -57,6 +53,10 @@ export function useGameLogic() {
         nextId.value = 0;
         if (mode === 'classic') {
             cells.value = SEQUENCE_CLASSIC.map(n => ({ id: nextId.value++, value: n, status: 'active' }));
+        } else if (mode === 'easy') {
+            const numbers = [1, 2, 4, 5, 6, 8, 9];
+            const values = Array.from({ length: 27 }, () => numbers[Math.floor(Math.random() * numbers.length)]!);
+            cells.value = values.map(n => ({ id: nextId.value++, value: n, status: 'active' }));
         } else {
             const rnd = Array.from({ length: 27 }, () => Math.floor(Math.random() * 9) + 1);
             cells.value = rnd.map(n => ({ id: nextId.value++, value: n, status: 'active' }));
@@ -68,12 +68,36 @@ export function useGameLogic() {
         nextId.value = savedId;
     };
 
-    const addLines = () => {
-        const active = cells.value
-            .filter(c => c.status !== 'crossed')
-            .map(c => c.value);
+    // === ЛОГИКА ДОБАВЛЕНИЯ (3 СТРОКИ) ===
+    const addLines = (mode: GameMode) => {
+        let newValues: number[] = [];
+        const activeCells = cells.value.filter(c => c.status !== 'crossed');
 
-        const newCells = active.map(n => ({
+        if (mode === 'easy') {
+            for (let i = 0; i < activeCells.length; i++) {
+                const randomIndex = Math.floor(Math.random() * activeCells.length);
+                const sourceCell = activeCells[randomIndex];
+                const sourceValue = sourceCell ? sourceCell.value : 1;
+
+                // С вероятностью 80% даем пару ("ключ")
+                if (Math.random() > 0.2) {
+                    const isSame = Math.random() > 0.5;
+                    newValues.push(isSame ? sourceValue : (10 - sourceValue));
+                } else {
+                    // Иначе просто копируем число (увеличиваем шанс на пару в будущем)
+                    newValues.push(sourceValue);
+                }
+            }
+
+            newValues.sort(() => Math.random() - 0.5);
+        } else if (mode === 'random') {
+            newValues = Array.from({ length: 27 }, () => Math.floor(Math.random() * 9) + 1);
+        } else {
+            // Classic
+            newValues = activeCells.map(c => c.value);
+        }
+
+        const newCells = newValues.map(n => ({
             id: nextId.value++,
             value: n,
             status: 'active' as CellStatus
@@ -88,12 +112,10 @@ export function useGameLogic() {
         const len = cells.value.length;
         for (let i = startIndex; i < len; i++) {
             const c1 = cells.value[i];
-            // Исправление: проверка c1 перед использованием
             if (!c1 || c1.status === 'crossed') continue;
 
             for (let j = i + 1; j < len; j++) {
                 const c2 = cells.value[j];
-                // Исправление: проверка c2
                 if (!c2 || c2.status === 'crossed') continue;
 
                 if (canMatch(i, j)) return [i, j];
@@ -102,30 +124,24 @@ export function useGameLogic() {
         return null;
     };
 
-    // === НОВАЯ ФУНКЦИЯ: Очистка пустых строк ===
     const cleanEmptyRows = (): number => {
         const ROW_SIZE = 9;
         let rowsRemoved = 0;
         const newCells: Cell[] = [];
         let hasChanges = false;
 
-        // Проходим по массиву блоками по 9 ячеек
         for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
             const chunk = cells.value.slice(i, i + ROW_SIZE);
-
-            // Если блок полный (9 шт) и ВСЕ зачеркнуты
             const isEmptyRow = chunk.length === ROW_SIZE && chunk.every(c => c.status === 'crossed');
 
             if (isEmptyRow) {
                 hasChanges = true;
                 rowsRemoved++;
             } else {
-                // Если строка не пустая (или неполная последняя), оставляем её
                 newCells.push(...chunk);
             }
         }
 
-        // Если были удаления, обновляем массив
         if (hasChanges) {
             cells.value = newCells;
         }
@@ -133,42 +149,38 @@ export function useGameLogic() {
         return rowsRemoved;
     };
 
-    // === НОВАЯ ФУНКЦИЯ: Поиск соседей для подсветки ===
     const findNeighbors = (index: number): number[] => {
         const neighbors: number[] = [];
         const len = cells.value.length;
         const ROW_SIZE = 9;
 
-        // 1. Ищем соседа СПРАВА (линейно)
+        // RIGHT
         for (let i = index + 1; i < len; i++) {
-            const cell = cells.value[i]; // Исправление ошибки TS2532
+            const cell = cells.value[i];
             if (cell && cell.status !== 'crossed') {
                 neighbors.push(i);
-                break; // Нашли ближайшего - стоп
+                break;
             }
         }
-
-        // 2. Ищем соседа СЛЕВА (линейно)
+        // LEFT
         for (let i = index - 1; i >= 0; i--) {
-            const cell = cells.value[i]; // Исправление ошибки TS2532
+            const cell = cells.value[i];
             if (cell && cell.status !== 'crossed') {
                 neighbors.push(i);
                 break;
             }
         }
-
-        // 3. Ищем соседа СНИЗУ (вертикально по колонкам)
+        // DOWN
         for (let i = index + ROW_SIZE; i < len; i += ROW_SIZE) {
-            const cell = cells.value[i]; // Исправление ошибки TS2532
+            const cell = cells.value[i];
             if (cell && cell.status !== 'crossed') {
                 neighbors.push(i);
                 break;
             }
         }
-
-        // 4. Ищем соседа СВЕРХУ (вертикально по колонкам)
+        // UP
         for (let i = index - ROW_SIZE; i >= 0; i -= ROW_SIZE) {
-            const cell = cells.value[i]; // Исправление ошибки TS2532
+            const cell = cells.value[i];
             if (cell && cell.status !== 'crossed') {
                 neighbors.push(i);
                 break;

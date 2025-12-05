@@ -4,18 +4,13 @@
       <h2>🏆 Рекорды</h2>
 
       <div class="tabs">
-        <button 
-          @click="activeTab = 'classic'" 
-          class="tab-btn" 
-          :class="{ active: activeTab === 'classic' }"
-        >
+        <button @click="activeTab = 'easy'" class="tab-btn" :class="{ active: activeTab === 'easy' }">
+          Лайт
+        </button>
+        <button @click="activeTab = 'classic'" class="tab-btn" :class="{ active: activeTab === 'classic' }">
           Классика
         </button>
-        <button 
-          @click="activeTab = 'random'" 
-          class="tab-btn" 
-          :class="{ active: activeTab === 'random' }"
-        >
+        <button @click="activeTab = 'random'" class="tab-btn" :class="{ active: activeTab === 'random' }">
           Рандом
         </button>
       </div>
@@ -52,7 +47,7 @@ import type { GameMode, GameRecord } from '../types';
 
 defineEmits(['close']);
 
-const activeTab = ref<GameMode>('classic');
+const activeTab = ref<GameMode>('easy');
 const allRecords = ref<GameRecord[]>([]);
 
 // Загружаем данные при открытии

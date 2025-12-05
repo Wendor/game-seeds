@@ -173,7 +173,7 @@ export function useBot(deps: BotDependencies) {
                 return;
             }
 
-            uiActions.showToast('Бот: Ходов нет, добавляю...');
+            //uiActions.showToast('Бот: Ходов нет, добавляю...');
             await new Promise(r => setTimeout(r, 600));
             if (!isBotActive.value) return;
 

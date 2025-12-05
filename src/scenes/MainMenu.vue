@@ -19,6 +19,10 @@
           <span class="save-info">{{ saveInfo }}</span>
         </button>
 
+        <button @click="$emit('start', 'easy')" class="btn btn-easy btn-xl">
+          🌿 Лайт (Легкий)
+        </button>
+
         <button @click="$emit('start', 'classic')" class="btn btn-primary btn-xl">
           Классика (1-19)
         </button>
@@ -71,7 +75,12 @@ onMounted(() => {
     try {
       const parsed: SavedGameState = JSON.parse(savedData);
       hasSave.value = true;
-      const modeName = parsed.mode === 'classic' ? 'Классика' : 'Рандом';
+      
+      // Определяем название режима для отображения
+      let modeName = 'Классика';
+      if (parsed.mode === 'random') modeName = 'Рандом';
+      if (parsed.mode === 'easy') modeName = 'Лайт';
+
       const m = Math.floor(parsed.time / 60).toString().padStart(2, '0');
       const s = (parsed.time % 60).toString().padStart(2, '0');
       saveInfo.value = `${modeName} • ${m}:${s}`;
@@ -123,12 +132,24 @@ onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handle
 
 .install-btn { background: linear-gradient(90deg, #3b82f6, #2563eb); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
 
+/* Стиль для кнопки Продолжить (Зеленый) */
 .btn-success {
   background-color: #10b981; color: white;
   box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
   display: flex; flex-direction: column; align-items: center; line-height: 1.2;
 }
 .btn-success:hover { background-color: #059669; }
+
+/* НОВЫЙ СТИЛЬ: Кнопка Лайт (Бирюзовый/Teal) */
+.btn-easy {
+  background-color: #0891b2; /* Cyan-600 */
+  color: white;
+  box-shadow: 0 4px 10px rgba(8, 145, 178, 0.3);
+}
+.btn-easy:hover { 
+  background-color: #0e7490; /* Cyan-700 */
+}
+
 .save-info { font-size: 0.85rem; opacity: 0.9; font-weight: 400; margin-top: 2px; }
 
 @media (min-width: 768px) {

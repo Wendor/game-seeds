@@ -1,4 +1,8 @@
-export type GameMode = 'classic' | 'random';
+// src/types.ts
+
+// Добавляем 'easy' в список режимов
+export type GameMode = 'classic' | 'random' | 'easy';
+
 export type CellStatus = 'active' | 'selected' | 'crossed';
 
 export interface Cell {
@@ -13,16 +17,15 @@ export interface GameRecord {
     mode: GameMode;
 }
 
-// === НОВЫЕ ТИПЫ ДЛЯ ИСТОРИИ ===
 export type HistoryRecord =
     | { type: 'match'; changes: { index: number; prevStatus: CellStatus }[] }
     | { type: 'add'; count: number }
-    | { type: 'clean'; previousState: Cell[] }; // Для очистки все же нужен снапшот (структурное изменение)
+    | { type: 'clean'; previousState: Cell[] };
 
 export interface SavedGameState {
     cells: Cell[];
     time: number;
     mode: GameMode;
-    history: HistoryRecord[]; // Изменили тип с string[] на HistoryRecord[]
+    history: HistoryRecord[];
     nextId: number;
 }
