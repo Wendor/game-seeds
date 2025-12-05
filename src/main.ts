@@ -1,4 +1,7 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp } from 'vue';
+import App from './App.vue';
+import { initSounds } from './utils/audio';
 
-createApp(App).mount('#app')
+initSounds();
+
+createApp(App).mount('#app');
