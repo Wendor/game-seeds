@@ -10,7 +10,7 @@
 
     <header class="header">
       <button @click="$emit('back')" class="btn btn-secondary btn-sm back-btn">
-        <span class="back-arrow">←</span> Меню
+        <span class="back-arrow">←</span> меню
       </button>
       <div class="timer" :class="{ finished: isGameOver }">⏱ {{ formattedTime }}</div>
       <div class="stats">всего: <strong>{{ activeCount }}</strong></div>
@@ -383,8 +383,7 @@ const shareResult = async () => {
 }
 
 .back-arrow {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Системный шрифт для стрелки часто ровнее */
-  font-size: 1.1em; /* Чуть крупнее для баланса */
-  margin-top: -2px; /* Микро-коррекция вверх, если все равно низко */
+  /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; */
+  font-size: 1.1em;
 }
 </style>
