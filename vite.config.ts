@@ -8,7 +8,7 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate', // Автоматическое обновление кэша
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
 
       // Настройки манифеста (как приложение выглядит в системе)
       manifest: {
@@ -18,7 +18,7 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone', // Убирает интерфейс браузера
-        start_url: '/',
+        start_url: './',
         orientation: 'portrait', // Фиксируем вертикальную ориентацию
 
         icons: [
@@ -43,7 +43,7 @@ export default defineConfig({
 
       // Настройки кэширования (офлайн режим)
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mp3}']
       }
     })
   ]
