@@ -133,14 +133,22 @@ body.dark-mode {
   --shadow-color: rgba(0,0,0,0.5);
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body { margin: 0; padding: 0; background-color: var(--bg-main); transition: background-color 0.3s; }
 
 .app-wrapper {
-  display: flex; flex-direction: column; min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--bg-main); 
   font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--text-main);
   transition: background-color 0.3s, color 0.3s;
+  overflow-x: hidden;
 }
 
 /* UI KIT (Кнопки) */

@@ -9,7 +9,9 @@
     />
 
     <header class="header">
-      <button @click="$emit('back')" class="btn btn-secondary btn-sm">← Меню</button>
+      <button @click="$emit('back')" class="btn btn-secondary btn-sm back-btn">
+        <span class="back-arrow">←</span> Меню
+      </button>
       <div class="timer" :class="{ finished: isGameOver }">⏱ {{ formattedTime }}</div>
       <div class="stats">всего: <strong>{{ activeCount }}</strong></div>
     </header>
@@ -370,4 +372,19 @@ const shareResult = async () => {
 @keyframes popIn { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
 .final-time { font-size: 1.2rem; color: var(--text-main); font-weight: 600; }
 @media (min-width: 768px) { .grid { gap: 8px; max-width: 600px; } .cell { font-size: 1.5rem; border-radius: 12px; } .cell:hover:not(.crossed):not(.selected):not(.hint):not(.neighbor):not(.neighbor-match) { background-color: var(--btn-sec-bg); border-color: #3b82f6; transform: translateY(-1px); } .controls { padding-bottom: 12px; } }
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;       /* Расстояние между стрелкой и текстом */
+  line-height: 1; /* Сброс высоты строки, это лечит "прыгающую" стрелку */
+  padding-bottom: 6px; /* Иногда нужно чуть компенсировать визуально */
+  padding-top: 6px;
+}
+
+.back-arrow {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Системный шрифт для стрелки часто ровнее */
+  font-size: 1.1em; /* Чуть крупнее для баланса */
+  margin-top: -2px; /* Микро-коррекция вверх, если все равно низко */
+}
 </style>
