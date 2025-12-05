@@ -3,8 +3,8 @@ import type { Cell, GameMode, CellStatus } from '../types';
 
 const SEQUENCE_CLASSIC = [
     1, 2, 3, 4, 5, 6, 7, 8, 9,
-    1, 0, 1, 1, 1, 2, 1, 3, 1, 4,
-    1, 5, 1, 6, 1, 7, 1, 8, 1, 9
+    1, 1, 1, 2, 1, 3, 1, 4, 1,
+    5, 1, 6, 1, 7, 1, 8, 1, 9
 ];
 
 export function useGameLogic() {
@@ -58,7 +58,7 @@ export function useGameLogic() {
         if (mode === 'classic') {
             cells.value = SEQUENCE_CLASSIC.map(n => ({ id: nextId.value++, value: n, status: 'active' }));
         } else {
-            const rnd = Array.from({ length: 36 }, () => Math.floor(Math.random() * 9) + 1);
+            const rnd = Array.from({ length: 27 }, () => Math.floor(Math.random() * 9) + 1);
             cells.value = rnd.map(n => ({ id: nextId.value++, value: n, status: 'active' }));
         }
     };
