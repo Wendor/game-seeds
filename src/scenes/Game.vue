@@ -71,7 +71,8 @@ const {
 } = useGameLogic();
 
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
-const { saveSnapshot, undo, clearHistory, hasHistory, history } = useHistory(cells);
+const { recordMatch, recordAdd, recordClean, popHistory, 
+  undo, clearHistory, hasHistory, history } = useHistory(cells);
 
 const selectedIndex = ref<number | null>(null);
 const hintIndices = ref<number[]>([]);
@@ -131,7 +132,7 @@ const handleCellClick = (index: number) => {
   const prevCell = cells.value[prevIndex];
 
   if (prevCell && canMatch(prevIndex, index)) {
-    saveSnapshot();
+    recordMatch([prevIndex, index]);
     playSound('match');
     haptic.success();
     prevCell.status = 'crossed';
@@ -140,10 +141,16 @@ const handleCellClick = (index: number) => {
     nextHintStartIndex.value = 0;
 
     setTimeout(() => {
+      // Сначала записываем состояние на случай, если строки удалятся
+      recordClean();
       const removedCount = cleanEmptyRows();
+      
       if (removedCount > 0) {
         showToast(removedCount === 1 ? 'Ряд очищен!' : `Убрано рядов: ${removedCount}`);
         playSound('add');
+      } else {
+        // Если ничего не удалилось, запись в истории лишняя — убираем её
+        popHistory();
       }
     }, 300);
 
@@ -176,8 +183,10 @@ const performAddLines = () => {
     return;
   }
   
-  saveSnapshot();
-  const count = addLines();
+  const count = addLines(); // Сначала добавляем
+  if (count > 0) {
+    recordAdd(count); // Потом записываем, сколько добавили
+  }
   
   playSound('add');
   haptic.impact();
@@ -252,7 +261,7 @@ const initGame = () => {
         resetTimer(parsed.time);
         if (parsed.history) {
             clearHistory();
-            parsed.history.forEach((h: string) => history.value.push(h));
+            parsed.history.forEach((h: any) => history.value.push(h));
         }
         startTimer();
         return;

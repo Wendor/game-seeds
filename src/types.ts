@@ -13,11 +13,16 @@ export interface GameRecord {
     mode: GameMode;
 }
 
-// НОВЫЙ ИНТЕРФЕЙС
+// === НОВЫЕ ТИПЫ ДЛЯ ИСТОРИИ ===
+export type HistoryRecord =
+    | { type: 'match'; changes: { index: number; prevStatus: CellStatus }[] }
+    | { type: 'add'; count: number }
+    | { type: 'clean'; previousState: Cell[] }; // Для очистки все же нужен снапшот (структурное изменение)
+
 export interface SavedGameState {
     cells: Cell[];
     time: number;
     mode: GameMode;
-    history: string[]; // Сохраняем и историю для Undo!
+    history: HistoryRecord[]; // Изменили тип с string[] на HistoryRecord[]
     nextId: number;
 }

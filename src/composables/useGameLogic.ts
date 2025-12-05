@@ -9,6 +9,7 @@ const SEQUENCE_CLASSIC = [
 
 export function useGameLogic() {
     const cells = ref<Cell[]>([]);
+    // Исправление: делаем ref, чтобы значение обновлялось везде
     const nextId = ref(0);
 
     // --- Helpers ---
@@ -17,6 +18,7 @@ export function useGameLogic() {
         const end = Math.max(idx1, idx2);
         for (let i = start + 1; i < end; i++) {
             const cell = cells.value[i];
+            // Исправление: проверка на существование cell
             if (cell && cell.status !== 'crossed') return false;
         }
         return true;
@@ -30,6 +32,7 @@ export function useGameLogic() {
         const end = Math.max(idx1, idx2);
         for (let i = start + 9; i < end; i += 9) {
             const cell = cells.value[i];
+            // Исправление: проверка на существование cell
             if (cell && cell.status !== 'crossed') return false;
         }
         return true;
@@ -40,6 +43,7 @@ export function useGameLogic() {
         const c1 = cells.value[idx1];
         const c2 = cells.value[idx2];
 
+        // Исправление: строгая проверка на undefined
         if (!c1 || !c2) return false;
         if (c1.status === 'crossed' || c2.status === 'crossed') return false;
 
@@ -79,75 +83,49 @@ export function useGameLogic() {
         return newCells.length;
     };
 
-    // === OPTIMIZED HINT LOGIC ===
-    // Сложность O(N) вместо O(N^2)
+    // --- Hint Logic ---
     const findHint = (startIndex = 0): number[] | null => {
         const len = cells.value.length;
-        const ROW_SIZE = 9;
-
         for (let i = startIndex; i < len; i++) {
             const c1 = cells.value[i];
-            // Пропускаем несуществующие или зачеркнутые
+            // Исправление: проверка c1 перед использованием
             if (!c1 || c1.status === 'crossed') continue;
 
-            // 1. Оптимизированный поиск соседа СПРАВА
-            let rightIndex = -1;
             for (let j = i + 1; j < len; j++) {
                 const c2 = cells.value[j];
-                if (c2 && c2.status !== 'crossed') {
-                    rightIndex = j;
-                    break; // Нашли первого живого соседа, дальше искать нет смысла
-                }
-            }
+                // Исправление: проверка c2
+                if (!c2 || c2.status === 'crossed') continue;
 
-            // Если сосед справа подходит
-            if (rightIndex !== -1) {
-                const c2 = cells.value[rightIndex];
-                if (c1.value === c2.value || c1.value + c2.value === 10) {
-                    return [i, rightIndex];
-                }
-            }
-
-            // 2. Оптимизированный поиск соседа СНИЗУ
-            let bottomIndex = -1;
-            for (let j = i + ROW_SIZE; j < len; j += ROW_SIZE) {
-                const c2 = cells.value[j];
-                if (c2 && c2.status !== 'crossed') {
-                    bottomIndex = j;
-                    break; // Нашли первого живого соседа снизу
-                }
-            }
-
-            // Если сосед снизу подходит
-            if (bottomIndex !== -1) {
-                const c2 = cells.value[bottomIndex];
-                if (c1.value === c2.value || c1.value + c2.value === 10) {
-                    return [i, bottomIndex];
-                }
+                if (canMatch(i, j)) return [i, j];
             }
         }
         return null;
     };
 
-    // === Очистка пустых строк ===
+    // === НОВАЯ ФУНКЦИЯ: Очистка пустых строк ===
     const cleanEmptyRows = (): number => {
         const ROW_SIZE = 9;
         let rowsRemoved = 0;
         const newCells: Cell[] = [];
         let hasChanges = false;
 
+        // Проходим по массиву блоками по 9 ячеек
         for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
             const chunk = cells.value.slice(i, i + ROW_SIZE);
+
+            // Если блок полный (9 шт) и ВСЕ зачеркнуты
             const isEmptyRow = chunk.length === ROW_SIZE && chunk.every(c => c.status === 'crossed');
 
             if (isEmptyRow) {
                 hasChanges = true;
                 rowsRemoved++;
             } else {
+                // Если строка не пустая (или неполная последняя), оставляем её
                 newCells.push(...chunk);
             }
         }
 
+        // Если были удаления, обновляем массив
         if (hasChanges) {
             cells.value = newCells;
         }
@@ -155,39 +133,42 @@ export function useGameLogic() {
         return rowsRemoved;
     };
 
-    // === Поиск соседей для подсветки ===
+    // === НОВАЯ ФУНКЦИЯ: Поиск соседей для подсветки ===
     const findNeighbors = (index: number): number[] => {
         const neighbors: number[] = [];
         const len = cells.value.length;
         const ROW_SIZE = 9;
 
-        // Справа
+        // 1. Ищем соседа СПРАВА (линейно)
         for (let i = index + 1; i < len; i++) {
-            const cell = cells.value[i];
+            const cell = cells.value[i]; // Исправление ошибки TS2532
             if (cell && cell.status !== 'crossed') {
                 neighbors.push(i);
-                break;
+                break; // Нашли ближайшего - стоп
             }
         }
-        // Слева
+
+        // 2. Ищем соседа СЛЕВА (линейно)
         for (let i = index - 1; i >= 0; i--) {
-            const cell = cells.value[i];
+            const cell = cells.value[i]; // Исправление ошибки TS2532
             if (cell && cell.status !== 'crossed') {
                 neighbors.push(i);
                 break;
             }
         }
-        // Снизу
+
+        // 3. Ищем соседа СНИЗУ (вертикально по колонкам)
         for (let i = index + ROW_SIZE; i < len; i += ROW_SIZE) {
-            const cell = cells.value[i];
+            const cell = cells.value[i]; // Исправление ошибки TS2532
             if (cell && cell.status !== 'crossed') {
                 neighbors.push(i);
                 break;
             }
         }
-        // Сверху
+
+        // 4. Ищем соседа СВЕРХУ (вертикально по колонкам)
         for (let i = index - ROW_SIZE; i >= 0; i -= ROW_SIZE) {
-            const cell = cells.value[i];
+            const cell = cells.value[i]; // Исправление ошибки TS2532
             if (cell && cell.status !== 'crossed') {
                 neighbors.push(i);
                 break;
