@@ -38,8 +38,8 @@
     </main>
 
     <footer class="controls">
-      <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver" title="Отмена">↶</button>
-      <button @click="showNextHint" class="btn btn-secondary btn-icon icon-text" :disabled="isGameOver" title="Подсказка">✦</button>
+      <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver" title="Отмена">⤺</button>
+      <button @click="showNextHint" class="btn btn-secondary btn-icon icon-text" :disabled="isGameOver" title="Подсказка">⚐</button>
       <button @click="performAddLines" :disabled="isGameOver" class="btn btn-primary btn-lg">Добавить</button>
       <button @click="showRestartModal = true" class="btn btn-danger btn-icon" title="Рестарт">↺</button>
     </footer>
