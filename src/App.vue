@@ -54,6 +54,9 @@ const isDark = ref(false);
 const updateMetaThemeColor = (dark: boolean) => {
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (metaThemeColor) {
+    // #0f172a - цвет фона темной темы
+    // #ffffff - цвет фона светлой темы
+    // Эти цвета должны совпадать с --bg-main
     metaThemeColor.setAttribute('content', dark ? '#0f172a' : '#ffffff');
   }
 };
@@ -111,11 +114,12 @@ const handleContinueGame = () => {
 </script>
 
 <style>
-/* === ГЛОБАЛЬНЫЕ ЦВЕТОВЫЕ ПЕРЕМЕННЫЕ === */
+/* === ГЛОБАЛЬНЫЕ СТИЛИ (PWA FIXES) === */
+
 :root {
   /* Светлая тема (default) */
   --bg-main: #ffffff;
-  --bg-secondary: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); /* Фон меню */
+  --bg-secondary: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   --text-main: #1f2937;
   --text-muted: #64748b;
   
@@ -134,9 +138,9 @@ const handleContinueGame = () => {
   --shadow-color: rgba(0,0,0,0.1);
 }
 
-/* Темная тема (переопределение) */
+/* Темная тема */
 body.dark-mode {
-  --bg-main: #0f172a; /* Темно-синий фон */
+  --bg-main: #0f172a;
   --bg-secondary: #0f172a; 
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
@@ -160,18 +164,48 @@ body.dark-mode {
   box-sizing: border-box;
 }
 
-body { margin: 0; padding: 0; background-color: var(--bg-main); transition: background-color 0.3s; }
+html {
+  /* Запрещаем "резинку" (overscroll) на уровне всего приложения */
+  overscroll-behavior: none;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  /* Отключаем скролл самого body, чтобы скроллились только нужные контейнеры */
+  overflow: hidden; 
+  background-color: var(--bg-main);
+  transition: background-color 0.3s;
+  
+  /* PWA фиксы для iOS */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none; /* Запрет выделения текста (чтобы не мешало играть) */
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+}
 
 .app-wrapper {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%; /* На всю высоту окна */
   background-color: var(--bg-main); 
   font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--text-main);
   transition: background-color 0.3s, color 0.3s;
-  overflow-x: hidden;
+}
+
+/* Разрешаем скролл для экранов, которые не являются игрой (Меню, Правила, Рекорды),
+   так как мы отключили скролл у body */
+.screen-menu, .screen-rules, .screen-leaderboard {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
 }
 
 /* UI KIT (Кнопки) */
@@ -186,7 +220,6 @@ body { margin: 0; padding: 0; background-color: var(--bg-main); transition: back
 .btn-primary:hover { background-color: #2563eb; }
 .btn-primary:disabled { background-color: #9ca3af; box-shadow: none; opacity: 0.7; }
 
-/* Вторичные кнопки теперь используют переменные */
 .btn-secondary { background-color: var(--btn-sec-bg); color: var(--btn-sec-text); border: 1px solid transparent; }
 .btn-secondary:hover { background-color: var(--btn-sec-hover); }
 .btn-secondary:disabled { opacity: 0.5; }

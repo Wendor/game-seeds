@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import type { GameMode, SavedGameState } from '../types';
 import { toggleMute, getMuteState } from '../utils/audio';
 import { useI18n } from '../composables/useI18n';
@@ -67,9 +67,28 @@ defineEmits<{
   (e: 'toggle-theme'): void;
 }>();
 
-const hasSave = ref(false);
-const saveInfo = ref('');
+// Храним состояние сохранения в ref, чтобы computed мог на него реагировать
+const savedGame = ref<SavedGameState | null>(null);
 const isMuted = ref(false);
+
+const hasSave = computed(() => !!savedGame.value);
+
+// Вычисляемое свойство для текста сохранения (реактивно обновляется при смене языка)
+const saveInfo = computed(() => {
+  if (!savedGame.value) return '';
+  
+  // Используем ключи перевода из раздела рекордов (там короткие названия)
+  let modeKey = 'records.classic';
+  if (savedGame.value.mode === 'random') modeKey = 'records.random';
+  if (savedGame.value.mode === 'easy') modeKey = 'records.easy';
+
+  const m = Math.floor(savedGame.value.time / 60).toString().padStart(2, '0');
+  const s = (savedGame.value.time % 60).toString().padStart(2, '0');
+  const timeStr = `${m}:${s}`;
+  
+  // t(modeKey) переведет режим ('Классика'/'Classic' и т.д.)
+  return t('menu.saveInfo', { mode: t(modeKey), time: timeStr });
+});
 
 const toggleSound = () => {
   isMuted.value = toggleMute();
@@ -79,17 +98,10 @@ onMounted(() => {
   const savedData = localStorage.getItem('seeds-save');
   if (savedData) {
     try {
-      const parsed: SavedGameState = JSON.parse(savedData);
-      hasSave.value = true;
-      
-      const m = Math.floor(parsed.time / 60).toString().padStart(2, '0');
-      const s = (parsed.time % 60).toString().padStart(2, '0');
-      const timeStr = `${m}:${s}`;
-      
-      let modeName = parsed.mode === 'random' ? 'Random' : (parsed.mode === 'easy' ? 'Lite' : 'Classic');
-      
-      saveInfo.value = t('menu.saveInfo', { mode: modeName, time: timeStr });
-    } catch { hasSave.value = false; }
+      savedGame.value = JSON.parse(savedData);
+    } catch { 
+      savedGame.value = null; 
+    }
   }
   isMuted.value = getMuteState();
   window.addEventListener('beforeinstallprompt', handleInstallPrompt);
