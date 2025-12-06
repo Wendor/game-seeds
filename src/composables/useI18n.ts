@@ -8,12 +8,12 @@ const dictionary = {
             title: 'Семечки',
             subtitle: 'Логическая игра из детства',
             resume: 'Продолжить игру',
-            easy: '🌿 Лайт (Легкий)',
+            easy: 'Лайт (Легкий)',
             classic: 'Классика (1-19)',
             random: 'Случайные числа',
-            install: '📲 Установить приложение',
-            records: '🏆 Рекорды',
-            rules: '📜 Правила игры',
+            install: 'Установить приложение',
+            records: 'Рекорды',
+            rules: 'Правила игры',
             saveInfo: '{mode} • {time}'
         },
         game: {
@@ -51,7 +51,7 @@ const dictionary = {
             btn: 'Всё понятно'
         },
         records: {
-            title: '🏆 Рекорды',
+            title: 'Рекорды',
             easy: 'Лайт',
             classic: 'Классика',
             random: 'Рандом',
@@ -64,12 +64,12 @@ const dictionary = {
             title: 'Seeds',
             subtitle: 'Classic logic game',
             resume: 'Resume Game',
-            easy: '🌿 Lite (Easy)',
+            easy: 'Lite (Easy)',
             classic: 'Classic (1-19)',
             random: 'Random Numbers',
-            install: '📲 Install App',
-            records: '🏆 Leaderboard',
-            rules: '📜 How to play',
+            install: 'Install App',
+            records: 'Leaderboard',
+            rules: 'How to play',
             saveInfo: '{mode} • {time}'
         },
         game: {
@@ -107,7 +107,7 @@ const dictionary = {
             btn: 'Got it'
         },
         records: {
-            title: '🏆 Best Scores',
+            title: 'Best Scores',
             easy: 'Lite',
             classic: 'Classic',
             random: 'Random',

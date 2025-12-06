@@ -45,14 +45,21 @@
     background: #ecfdf5;
 }
 
-:global(body.dark-mode) .timer {
-    background: #1e3a8a;
-    color: #93c5fd;
+body.dark-mode .timer {
+    background: rgba(59, 130, 246, 0.15);
+    /* Прозрачный синий */
+    color: #60a5fa;
+    /* Светло-синий текст */
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    /* Тонкая рамка */
 }
 
-:global(body.dark-mode) .timer.finished {
-    background: #064e3b;
+body.dark-mode .timer.finished {
+    background: rgba(16, 185, 129, 0.15);
+    /* Прозрачный зеленый */
     color: #34d399;
+    /* Светло-зеленый текст */
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 /* --- КОНТЕЙНЕР И СЕТКА --- */
@@ -149,7 +156,7 @@
 }
 
 /* Темная тема для призраков */
-:global(body.dark-mode) .ghost-cell {
+body.dark-mode .ghost-cell {
     color: #4ade8080 !important;
     /* Светло-зеленый текст */
     border-color: #15803d80 !important;
@@ -176,7 +183,7 @@
     animation: pulse-border-blue 1.5s infinite;
 }
 
-:global(body.dark-mode) .ghost-cell.is-neighbor {
+body.dark-mode .ghost-cell.is-neighbor {
     color: #60a5fa !important;
     border-color: #60a5fa !important;
     background-color: rgba(59, 130, 246, 0.2) !important;
@@ -189,7 +196,7 @@
     animation: pulse-border-yellow 1.5s infinite;
 }
 
-:global(body.dark-mode) .ghost-cell.is-matchable {
+body.dark-mode .ghost-cell.is-matchable {
     color: #facc15 !important;
     border-color: #facc15 !important;
 }
@@ -252,12 +259,12 @@
     z-index: 1;
 }
 
-:global(body.dark-mode) .cell.neighbor {
+body.dark-mode .cell.neighbor {
     background-color: rgba(59, 130, 246, 0.15);
     border-color: rgba(147, 197, 253, 0.4);
 }
 
-:global(body.dark-mode) .cell.neighbor-match {
+body.dark-mode .cell.neighbor-match {
     background-color: rgba(234, 179, 8, 0.15);
     border-color: rgba(250, 204, 21, 0.5);
 }
