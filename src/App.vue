@@ -1,32 +1,36 @@
 <template>
   <div class="app-wrapper" :class="{ dark: isDark }">
-    <MainMenu 
-      v-if="currentScreen === 'menu'" 
-      :is-dark="isDark"
-      @toggle-theme="toggleTheme"
-      @start="handleStartGame"
-      @continue="handleContinueGame" 
-      @open-rules="currentScreen = 'rules'"
-      @open-leaderboard="currentScreen = 'leaderboard'"
-    />
+    <Transition name="fade" mode="out-in">
+      
+      <MainMenu 
+        v-if="currentScreen === 'menu'" 
+        :is-dark="isDark"
+        @toggle-theme="toggleTheme"
+        @start="handleStartGame"
+        @continue="handleContinueGame" 
+        @open-rules="currentScreen = 'rules'"
+        @open-leaderboard="currentScreen = 'leaderboard'"
+      />
 
-    <Rules 
-      v-else-if="currentScreen === 'rules'" 
-      @close="currentScreen = 'menu'"
-    />
-    
-    <Leaderboard
-      v-else-if="currentScreen === 'leaderboard'"
-      @close="currentScreen = 'menu'"
-    />
+      <Rules 
+        v-else-if="currentScreen === 'rules'" 
+        @close="currentScreen = 'menu'"
+      />
+      
+      <Leaderboard
+        v-else-if="currentScreen === 'leaderboard'"
+        @close="currentScreen = 'menu'"
+      />
 
-    <Game 
-      v-else 
-      :mode="activeGameMode" 
-      :resume="isResumeGame"
-      :key="gameKey"
-      @back="currentScreen = 'menu'"
-    />
+      <Game 
+        v-else 
+        :mode="activeGameMode" 
+        :resume="isResumeGame"
+        :key="gameKey"
+        @back="currentScreen = 'menu'"
+      />
+      
+    </Transition>
   </div>
 </template>
 
@@ -54,9 +58,6 @@ const isDark = ref(false);
 const updateMetaThemeColor = (dark: boolean) => {
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (metaThemeColor) {
-    // #0f172a - цвет фона темной темы
-    // #ffffff - цвет фона светлой темы
-    // Эти цвета должны совпадать с --bg-main
     metaThemeColor.setAttribute('content', dark ? '#0f172a' : '#ffffff');
   }
 };
@@ -165,7 +166,6 @@ body.dark-mode {
 }
 
 html {
-  /* Запрещаем "резинку" (overscroll) на уровне всего приложения */
   overscroll-behavior: none;
   height: 100%;
 }
@@ -175,15 +175,13 @@ body {
   padding: 0;
   height: 100%;
   width: 100%;
-  /* Отключаем скролл самого body, чтобы скроллились только нужные контейнеры */
   overflow: hidden; 
   background-color: var(--bg-main);
   transition: background-color 0.3s;
   
-  /* PWA фиксы для iOS */
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  user-select: none; /* Запрет выделения текста (чтобы не мешало играть) */
+  user-select: none;
 }
 
 #app {
@@ -194,18 +192,32 @@ body {
 .app-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100%; /* На всю высоту окна */
+  height: 100%;
   background-color: var(--bg-main); 
   font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--text-main);
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* Разрешаем скролл для экранов, которые не являются игрой (Меню, Правила, Рекорды),
-   так как мы отключили скролл у body */
 .screen-menu, .screen-rules, .screen-leaderboard {
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- АНИМАЦИЯ ПЕРЕХОДОВ --- */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: scale(0.98); /* Легкое увеличение при появлении */
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: scale(1.02); /* Легкое увеличение при исчезновении */
 }
 
 /* UI KIT (Кнопки) */
