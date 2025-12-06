@@ -38,7 +38,7 @@ const dictionary = {
             clearedMulti: 'Убрано рядов: {n}',
             noMoves: 'Ходов нет! Жми "Добавить"',
             copied: 'Скопировано!',
-            shareText: '🧩 Семечки\n🏆 Победа за {time}!'
+            shareText: '🏆 Победа в Семечках!\nЯ прошел в режиме {mode} за {time}!'
         },
         rules: {
             title: 'Как играть?',
@@ -94,7 +94,7 @@ const dictionary = {
             clearedMulti: 'Rows cleared: {n}',
             noMoves: 'No moves! Press "Add Rows"',
             copied: 'Copied!',
-            shareText: '🧩 Seeds Game\n🏆 Won in {time}!'
+            shareText: '🏆 Victory in Seeds!\nI completed {mode} mode in {time}!'
         },
         rules: {
             title: 'How to play?',

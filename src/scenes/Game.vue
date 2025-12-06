@@ -377,7 +377,11 @@ const getCellClasses = (cell: Cell, index: number) => {
 const shareResult = async () => {
   // Добавляем текущую ссылку к тексту
   const url = window.location.href;
-  const text = `${t('game.shareText', { time: formattedTime.value })}\n${url}`;
+  
+  // Получаем локализованное название режима ('Лайт', 'Lite' и т.д.)
+  const modeName = t(`records.${props.mode}`);
+  
+  const text = `${t('game.shareText', { mode: modeName, time: formattedTime.value })}\n${url}`;
   
   if (navigator.share) {
     try { 
