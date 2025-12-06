@@ -8,6 +8,8 @@ interface PlayerDeps {
         canMatch: (idx1: number, idx2: number) => boolean;
         findNeighbors: (index: number) => number[];
         cleanEmptyRows: () => number;
+        // Добавили метод
+        updateLinksAfterCross: (idx1: number, idx2: number) => void;
     };
     historyActions: {
         recordMatch: (indices: number[]) => void;
@@ -84,6 +86,9 @@ export function usePlayer(deps: PlayerDeps) {
             prevCell.status = 'crossed';
             cell.status = 'crossed';
             selectedIndex.value = null;
+
+            // ОПТИМИЗАЦИЯ: Обновляем связи
+            gameActions.updateLinksAfterCross(prevIndex, index);
 
             // Отложенная очистка строк
             setTimeout(() => {

@@ -8,6 +8,8 @@ interface BotDependencies {
         findNeighbors: (index: number) => number[];
         addLines: () => number;
         cleanEmptyRows: () => number;
+        // Добавили метод для обновления связей
+        updateLinksAfterCross: (idx1: number, idx2: number) => void;
     };
     historyActions: {
         recordMatch: (indices: number[]) => void;
@@ -41,17 +43,28 @@ export function useBot(deps: BotDependencies) {
     // --- Вспомогательные функции ---
 
     const findPrevActive = (index: number): number | null => {
+        // Оптимизация: используем prev ссылку, если она есть
+        const cell = cells.value[index];
+        if (cell && cell.prev !== undefined && cell.prev !== null) {
+            return cell.prev;
+        }
+        // Фоллбэк на цикл (на всякий случай или для старой логики)
         for (let i = index - 1; i >= 0; i--) {
-            const cell = cells.value[i];
-            if (cell && cell.status !== 'crossed') return i;
+            const c = cells.value[i];
+            if (c && c.status !== 'crossed') return i;
         }
         return null;
     };
 
     const findNextActive = (index: number): number | null => {
+        // Оптимизация: используем next ссылку
+        const cell = cells.value[index];
+        if (cell && cell.next !== undefined && cell.next !== null) {
+            return cell.next;
+        }
         for (let i = index + 1; i < cells.value.length; i++) {
-            const cell = cells.value[i];
-            if (cell && cell.status !== 'crossed') return i;
+            const c = cells.value[i];
+            if (c && c.status !== 'crossed') return i;
         }
         return null;
     };
@@ -64,12 +77,16 @@ export function useBot(deps: BotDependencies) {
 
     const findBestMove = (): [number, number] | null => {
         const len = cells.value.length;
-        const searchLimit = len > 3000 ? 2000 : len;
+        // Лимит поиска можно увеличить или убрать, так как findNeighbors теперь быстрее
+        const searchLimit = len > 3000 ? 2500 : len;
 
         const allMoves: { idx1: number, idx2: number, score: number }[] = [];
 
         for (let i = 0; i < searchLimit; i++) {
             const currentCell = cells.value[i];
+            // Используем оптимизированный проход: если есть next, прыгаем по нему?
+            // Пока оставим цикл, чтобы не переписывать всю структуру, 
+            // но findNeighbors внутри теперь O(1) для горизонтали
             if (!currentCell || currentCell.status === 'crossed') continue;
 
             const neighbors = gameActions.findNeighbors(i);
@@ -94,6 +111,7 @@ export function useBot(deps: BotDependencies) {
 
                     // 3. Цепная реакция (горизонт)
                     if (!isVertical) {
+                        // Тут теперь тоже можно использовать быстрый поиск
                         const prev = findPrevActive(i);
                         const next = findNextActive(nIdx);
                         if (prev !== null && next !== null) {
@@ -120,7 +138,6 @@ export function useBot(deps: BotDependencies) {
         // --- ВЕРОЯТНОСТНЫЙ ВЫБОР ---
         allMoves.sort((a, b) => b.score - a.score);
 
-        // ИСПРАВЛЕНИЕ: Безопасное получение лучшего элемента
         const bestMove = allMoves[0];
         if (!bestMove) return null;
 
@@ -130,7 +147,6 @@ export function useBot(deps: BotDependencies) {
         const randomIdx = Math.floor(Math.random() * candidates.length);
         const selected = candidates[randomIdx];
 
-        // Защита от undefined при доступе по индексу
         if (!selected) return null;
 
         return [selected.idx1, selected.idx2];
@@ -161,6 +177,9 @@ export function useBot(deps: BotDependencies) {
             if (c1) c1.status = 'crossed';
             if (c2) c2.status = 'crossed';
 
+            // ОПТИМИЗАЦИЯ: Обновляем связи сразу после хода
+            gameActions.updateLinksAfterCross(idx1, idx2);
+
             historyActions.recordClean();
             const removed = gameActions.cleanEmptyRows();
             if (removed === 0) historyActions.popHistory();
@@ -173,7 +192,6 @@ export function useBot(deps: BotDependencies) {
                 return;
             }
 
-            //uiActions.showToast('Бот: Ходов нет, добавляю...');
             await new Promise(r => setTimeout(r, 600));
             if (!isBotActive.value) return;
 

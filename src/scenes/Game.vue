@@ -117,7 +117,7 @@ const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
 defineEmits(['back']);
 
 // ... (остальные composables без изменений) ...
-const { cells, nextId, generateCells, restoreCells, canMatch, addLines, findHint, cleanEmptyRows, findNeighbors } = useGameLogic();
+const { cells, nextId, generateCells, restoreCells, canMatch, addLines, findHint, cleanEmptyRows, findNeighbors, updateLinksAfterCross } = useGameLogic();
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
 const { recordMatch, recordAdd, recordClean, popHistory, undo, clearHistory, hasHistory, history } = useHistory(cells);
 const { toastMessage, showToast, playSound, haptic } = useFeedback();
@@ -232,7 +232,7 @@ const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints(
 
 const { isBotActive, toggleBot, stopBot } = useBot({
     cells,
-    gameActions: { canMatch, findNeighbors, addLines: () => addLines(props.mode), cleanEmptyRows },
+    gameActions: { canMatch, findNeighbors, addLines: () => addLines(props.mode), cleanEmptyRows, updateLinksAfterCross },
     historyActions: { recordMatch, recordAdd, recordClean, popHistory },
     uiActions: { playSound, showToast, scrollToCell },
     gameState: { isGameOver }
@@ -240,7 +240,7 @@ const { isBotActive, toggleBot, stopBot } = useBot({
 
 const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = usePlayer({
     cells,
-    gameActions: { canMatch, findNeighbors, cleanEmptyRows },
+    gameActions: { canMatch, findNeighbors, cleanEmptyRows, updateLinksAfterCross },
     historyActions: { recordMatch, recordClean, popHistory },
     uiActions: { playSound, showToast, haptic, clearHintUI },
     state: { isBotActive }

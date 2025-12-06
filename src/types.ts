@@ -9,6 +9,8 @@ export interface Cell {
     id: number;
     value: number;
     status: CellStatus;
+    prev?: number | null; // Сосед слева/сверху (по змейке)
+    next?: number | null; // Сосед справа/снизу (по змейке)
 }
 
 export interface GameRecord {
