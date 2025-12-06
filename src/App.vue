@@ -37,6 +37,10 @@ import Rules from './scenes/Rules.vue';
 import Game from './scenes/Game.vue';
 import Leaderboard from './scenes/Leaderboard.vue';
 import type { GameMode } from './types';
+import { useI18n } from './composables/useI18n';
+
+const { initLanguage } = useI18n();
+initLanguage();
 
 type ScreenType = 'menu' | 'rules' | 'game' | 'leaderboard';
 
@@ -46,6 +50,13 @@ const isResumeGame = ref(false);
 
 // --- ТЕМНАЯ ТЕМА ---
 const isDark = ref(false);
+
+const updateMetaThemeColor = (dark: boolean) => {
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (metaThemeColor) {
+    metaThemeColor.setAttribute('content', dark ? '#0f172a' : '#ffffff');
+  }
+};
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
@@ -59,17 +70,29 @@ const updateBodyClass = () => {
   } else {
     document.body.classList.remove('dark-mode');
   }
+  updateMetaThemeColor(isDark.value);
 };
 
 onMounted(() => {
   const savedTheme = localStorage.getItem('seeds-theme');
+  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
   if (savedTheme === 'dark') {
     isDark.value = true;
-  } else if (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    // Если настройки нет, но в системе стоит темная тема
-    isDark.value = true;
+  } else if (savedTheme === 'light') {
+    isDark.value = false;
+  } else {
+    isDark.value = systemPrefersDark.matches;
   }
+  
   updateBodyClass();
+
+  systemPrefersDark.addEventListener('change', (e) => {
+    if (!localStorage.getItem('seeds-theme')) {
+      isDark.value = e.matches;
+      updateBodyClass();
+    }
+  });
 });
 // -------------------
 

@@ -1,4 +1,5 @@
-import { ref, type Ref } from 'vue';
+import { ref } from 'vue';
+import { useI18n } from './useI18n';
 
 interface HintsDeps {
     findHint: (startIndex?: number) => number[] | null;
@@ -8,6 +9,7 @@ interface HintsDeps {
 
 export function useGameHints(deps: HintsDeps) {
     const { findHint, scrollToCell, showToast } = deps;
+    const { t } = useI18n();
 
     const hintIndices = ref<number[]>([]);
     const nextHintStartIndex = ref(0);
@@ -44,7 +46,7 @@ export function useGameHints(deps: HintsDeps) {
                 hintIndices.value = [];
             }, 2000);
         } else {
-            showToast('Ходов нет! Жми "Добавить"');
+            showToast(t('game.noMoves'));
             nextHintStartIndex.value = 0;
         }
     };

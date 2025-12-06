@@ -3,17 +3,17 @@
     <Toast :show="!!toastMessage" :message="toastMessage || ''" />
     
     <Modal 
-      :show="showRestartModal" title="Начать заново?" 
-      message="Весь текущий прогресс будет потерян."
+      :show="showRestartModal" :title="t('game.restartTitle')" 
+      :message="t('game.restartMsg')"
       @confirm="confirmRestart" @cancel="showRestartModal = false"
     />
 
     <header class="header">
       <button @click="$emit('back')" class="btn btn-secondary btn-sm back-btn">
-        <span class="back-arrow">←</span> меню
+        <span class="back-arrow">←</span> {{ t('game.menu') }}
       </button>
       <div class="timer" :class="{ finished: isGameOver }">⏱ {{ formattedTime }}</div>
-      <div class="stats">всего: <strong>{{ activeCount }}</strong></div>
+      <div class="stats">{{ t('game.total') }}: <strong>{{ activeCount }}</strong></div>
     </header>
 
     <main class="grid-container">
@@ -29,29 +29,29 @@
       </div>
       
       <div v-if="isGameOver" class="win-message">
-        🎉 Победа! 🎉
-        <div class="final-time">Время: {{ formattedTime }}</div>
+        {{ t('game.win') }}
+        <div class="final-time">{{ t('game.time', { time: formattedTime }) }}</div>
         <div class="win-actions">
-          <button @click="shareResult" class="btn btn-success btn-lg">📤 Поделиться</button>
-          <button @click="$emit('back')" class="btn btn-primary btn-lg">В меню</button>
+          <button @click="shareResult" class="btn btn-success btn-lg">{{ t('game.share') }}</button>
+          <button @click="$emit('back')" class="btn btn-primary btn-lg">{{ t('game.toMenu') }}</button>
         </div>
       </div>
       <div class="spacer"></div>
     </main>
 
     <footer class="controls">
-      <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver || isBotActive" title="Отмена">⤺</button>
+      <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver || isBotActive" :title="t('game.undo')">⤺</button>
       
-      <button @click="showNextHint" class="btn btn-secondary btn-icon icon-text" :disabled="isGameOver || isBotActive" title="Подсказка">⚐</button>
+      <button @click="showNextHint" class="btn btn-secondary btn-icon icon-text" :disabled="isGameOver || isBotActive" :title="t('game.hint')">⚐</button>
       
-      <button @click="performAddLines" :disabled="isGameOver || isBotActive" class="btn btn-primary btn-lg">Добавить</button>
+      <button @click="performAddLines" :disabled="isGameOver || isBotActive" class="btn btn-primary btn-lg">{{ t('game.add') }}</button>
 
       <button 
         @click="handleToggleBot" 
         class="btn btn-icon" 
         :class="isBotActive ? 'btn-danger' : 'btn-secondary'"
         :disabled="isGameOver"
-        title="Автоигра"
+        :title="t('game.auto')"
       >
         <svg v-if="isBotActive" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
           <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -65,7 +65,7 @@
         </svg>
       </button>
 
-      <button @click="showRestartModal = true" class="btn btn-danger btn-icon" title="Рестарт">↺</button>
+      <button @click="showRestartModal = true" class="btn btn-danger btn-icon" :title="t('game.restart')">↺</button>
     </footer>
   </section>
 </template>
@@ -84,6 +84,7 @@ import { usePlayer } from '../composables/usePlayer';
 import { usePersistence } from '../composables/usePersistence';
 import { useGameHints } from '../composables/useGameHints';
 import { useFeedback } from '../composables/useFeedback';
+import { useI18n } from '../composables/useI18n';
 
 // Components & Assets
 import Toast from '../components/Toast.vue';
@@ -91,6 +92,7 @@ import Modal from '../components/Modal.vue';
 import confetti from 'canvas-confetti';
 import '../assets/game.css';
 
+const { t } = useI18n();
 const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
 defineEmits(['back']);
 
@@ -123,7 +125,6 @@ const { isBotActive, toggleBot, stopBot } = useBot({
     gameActions: { 
         canMatch, 
         findNeighbors, 
-        // ИСПРАВЛЕНИЕ: Оборачиваем функцию, чтобы передать mode
         addLines: () => addLines(props.mode), 
         cleanEmptyRows 
     },
@@ -165,7 +166,6 @@ watch(isGameOver, (val) => {
 
 const handleToggleBot = () => {
     if (!isBotActive.value) {
-        // Безопасный сброс выделения перед запуском бота
         if (selectedIndex.value !== null) {
             const cell = cells.value[selectedIndex.value];
             if (cell) cell.status = 'active';
@@ -189,12 +189,11 @@ const performUndo = () => {
 
 const performAddLines = () => {
   if (cells.value.length >= GAME_CONFIG.MAX_CELLS) {
-    showToast('Слишком много цифр! Очистите поле.');
+    showToast(t('game.fullLines'));
     haptic.medium();
     return;
   }
   
-  // ИСПРАВЛЕНИЕ: Передаем режим игры
   const count = addLines(props.mode);
   
   if (count > 0) recordAdd(count);
@@ -206,7 +205,7 @@ const performAddLines = () => {
   resetHintIndex();
   
   setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-  showToast(`Добавлено ${count} цифр`);
+  showToast(t('game.added', { n: count }));
 };
 
 const initGame = () => {
@@ -266,9 +265,9 @@ const getCellClasses = (cell: Cell, index: number) => {
 };
 
 const shareResult = async () => {
-  const text = `🧩 Семечки\n🏆 Победа за ${formattedTime.value}!`;
-  if (navigator.share) try { await navigator.share({ title: 'Победа!', text }); } catch {}
-  else { await navigator.clipboard.writeText(text); showToast('Скопировано!'); }
+  const text = t('game.shareText', { time: formattedTime.value });
+  if (navigator.share) try { await navigator.share({ title: 'Seeds', text }); } catch {}
+  else { await navigator.clipboard.writeText(text); showToast(t('game.copied')); }
 };
 </script>
 

@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue';
 import type { Cell } from '../types';
+import { useI18n } from './useI18n';
 
 interface PlayerDeps {
     cells: Ref<Cell[]>;
@@ -14,8 +15,10 @@ interface PlayerDeps {
         popHistory: () => void;
     };
     uiActions: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         playSound: (name: any) => void;
         showToast: (msg: string) => void;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         haptic: any;
         clearHintUI: () => void;
     };
@@ -26,13 +29,13 @@ interface PlayerDeps {
 
 export function usePlayer(deps: PlayerDeps) {
     const { cells, gameActions, historyActions, uiActions, state } = deps;
+    const { t } = useI18n();
 
     const selectedIndex = ref<number | null>(null);
     const neighborIndices = ref<number[]>([]);
 
     const resetSelection = () => {
         if (selectedIndex.value !== null) {
-            // ИСПРАВЛЕНИЕ: Сохраняем ячейку в переменную, чтобы TS видел проверку
             const cell = cells.value[selectedIndex.value];
             if (cell) {
                 cell.status = 'active';
@@ -88,7 +91,7 @@ export function usePlayer(deps: PlayerDeps) {
                 const removedCount = gameActions.cleanEmptyRows();
 
                 if (removedCount > 0) {
-                    uiActions.showToast(removedCount === 1 ? 'Ряд очищен!' : `Убрано рядов: ${removedCount}`);
+                    uiActions.showToast(removedCount === 1 ? t('game.cleared') : t('game.clearedMulti', { n: removedCount }));
                     uiActions.playSound('add');
                 } else {
                     historyActions.popHistory();

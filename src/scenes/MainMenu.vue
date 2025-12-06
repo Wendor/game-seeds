@@ -1,6 +1,9 @@
 <template>
   <section class="screen-menu">
     <div class="settings-group">
+      <button class="icon-btn" @click="toggleLanguage" title="Switch Language">
+        {{ currentLang === 'ru' ? 'EN' : 'RU' }}
+      </button>
       <button class="icon-btn" @click="toggleSound" :title="isMuted ? 'Включить звук' : 'Выключить звук'">
         {{ isMuted ? '🔇' : '🔊' }}
       </button>
@@ -10,36 +13,36 @@
     </div>
 
     <div class="menu-content">
-      <h1 class="game-title">Семечки</h1>
-      <p class="game-subtitle">Логическая игра из детства</p>
+      <h1 class="game-title">{{ t('menu.title') }}</h1>
+      <p class="game-subtitle">{{ t('menu.subtitle') }}</p>
       
       <div class="menu-buttons">
         <button v-if="hasSave" @click="$emit('continue')" class="btn btn-success btn-xl continue-btn">
-          ▶ Продолжить игру
+          ▶ {{ t('menu.resume') }}
           <span class="save-info">{{ saveInfo }}</span>
         </button>
 
         <button @click="$emit('start', 'easy')" class="btn btn-easy btn-xl">
-          🌿 Лайт (Легкий)
+          {{ t('menu.easy') }}
         </button>
 
         <button @click="$emit('start', 'classic')" class="btn btn-primary btn-xl">
-          Классика (1-19)
+          {{ t('menu.classic') }}
         </button>
         <button @click="$emit('start', 'random')" class="btn btn-primary btn-xl">
-          Случайные числа
+          {{ t('menu.random') }}
         </button>
         
         <button v-if="canInstall" @click="installApp" class="btn btn-primary btn-xl install-btn">
-          📲 Установить приложение
+          {{ t('menu.install') }}
         </button>
 
         <button @click="$emit('open-leaderboard')" class="btn btn-secondary btn-lg">
-          🏆 Рекорды
+          {{ t('menu.records') }}
         </button>
 
         <button @click="$emit('open-rules')" class="btn btn-secondary btn-lg">
-          📜 Правила игры
+          {{ t('menu.rules') }}
         </button>
       </div>
     </div>
@@ -50,6 +53,9 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import type { GameMode, SavedGameState } from '../types';
 import { toggleMute, getMuteState } from '../utils/audio';
+import { useI18n } from '../composables/useI18n';
+
+const { t, toggleLanguage, currentLang } = useI18n();
 
 defineProps<{ isDark: boolean }>();
 
@@ -76,14 +82,13 @@ onMounted(() => {
       const parsed: SavedGameState = JSON.parse(savedData);
       hasSave.value = true;
       
-      // Определяем название режима для отображения
-      let modeName = 'Классика';
-      if (parsed.mode === 'random') modeName = 'Рандом';
-      if (parsed.mode === 'easy') modeName = 'Лайт';
-
       const m = Math.floor(parsed.time / 60).toString().padStart(2, '0');
       const s = (parsed.time % 60).toString().padStart(2, '0');
-      saveInfo.value = `${modeName} • ${m}:${s}`;
+      const timeStr = `${m}:${s}`;
+      
+      let modeName = parsed.mode === 'random' ? 'Random' : (parsed.mode === 'easy' ? 'Lite' : 'Classic');
+      
+      saveInfo.value = t('menu.saveInfo', { mode: modeName, time: timeStr });
     } catch { hasSave.value = false; }
   }
   isMuted.value = getMuteState();
@@ -92,6 +97,7 @@ onMounted(() => {
 
 // PWA
 const canInstall = ref(false);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let deferredPrompt: any = null;
 const handleInstallPrompt = (e: Event) => { e.preventDefault(); deferredPrompt = e; canInstall.value = true; };
 const installApp = async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') { deferredPrompt = null; canInstall.value = false; } };
@@ -140,14 +146,14 @@ onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handle
 }
 .btn-success:hover { background-color: #059669; }
 
-/* НОВЫЙ СТИЛЬ: Кнопка Лайт (Бирюзовый/Teal) */
+/* ОБНОВЛЕННЫЙ СТИЛЬ: Кнопка Лайт (Оранжевый/Желтый) */
 .btn-easy {
-  background-color: #0891b2; /* Cyan-600 */
+  background-color: #f59e0b; /* Amber-500 */
   color: white;
-  box-shadow: 0 4px 10px rgba(8, 145, 178, 0.3);
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
 }
 .btn-easy:hover { 
-  background-color: #0e7490; /* Cyan-700 */
+  background-color: #d97706; /* Amber-600 */
 }
 
 .save-info { font-size: 0.85rem; opacity: 0.9; font-weight: 400; margin-top: 2px; }

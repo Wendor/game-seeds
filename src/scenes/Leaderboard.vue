@@ -1,23 +1,23 @@
 <template>
   <section class="screen-leaderboard">
     <div class="leaderboard-card">
-      <h2>🏆 Рекорды</h2>
+      <h2>{{ t('records.title') }}</h2>
 
       <div class="tabs">
         <button @click="activeTab = 'easy'" class="tab-btn" :class="{ active: activeTab === 'easy' }">
-          Лайт
+          {{ t('records.easy') }}
         </button>
         <button @click="activeTab = 'classic'" class="tab-btn" :class="{ active: activeTab === 'classic' }">
-          Классика
+          {{ t('records.classic') }}
         </button>
         <button @click="activeTab = 'random'" class="tab-btn" :class="{ active: activeTab === 'random' }">
-          Рандом
+          {{ t('records.random') }}
         </button>
       </div>
 
       <div class="records-list">
         <div v-if="currentRecords.length === 0" class="empty-state">
-          Пока нет побед. Сыграем?
+          {{ t('records.empty') }}
         </div>
         
         <div 
@@ -35,7 +35,7 @@
       </div>
 
       <button @click="$emit('close')" class="btn btn-secondary btn-lg full-width">
-        Назад в меню
+        {{ t('records.back') }}
       </button>
     </div>
   </section>
@@ -44,7 +44,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import type { GameMode, GameRecord } from '../types';
+import { useI18n } from '../composables/useI18n';
 
+const { t, currentLang } = useI18n();
 defineEmits(['close']);
 
 const activeTab = ref<GameMode>('easy');
@@ -78,7 +80,7 @@ const formatTime = (seconds: number) => {
 };
 
 const formatDate = (ts: number) => {
-  return new Date(ts).toLocaleDateString('ru-RU', {
+  return new Date(ts).toLocaleDateString(currentLang.value === 'ru' ? 'ru-RU' : 'en-US', {
     day: 'numeric', month: 'short'
   });
 };
@@ -87,38 +89,39 @@ const formatDate = (ts: number) => {
 <style scoped>
 .screen-leaderboard {
   flex: 1; display: flex; justify-content: center; padding: 20px;
-  background: #f8fafc;
+  background: var(--bg-main);
 }
 
 .leaderboard-card {
-  background: white; padding: 30px; border-radius: 24px;
+  background: var(--card-bg); 
+  padding: 30px; border-radius: 24px;
   width: 100%; max-width: 450px;
-  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05);
+  box-shadow: 0 10px 30px -5px var(--shadow-color);
   display: flex; flex-direction: column;
 }
 
-h2 { text-align: center; margin-top: 0; color: #0f172a; }
+h2 { text-align: center; margin-top: 0; color: var(--text-main); }
 
 .tabs {
-  display: flex; background: #f1f5f9; padding: 4px; border-radius: 12px;
+  display: flex; background: var(--btn-sec-bg); padding: 4px; border-radius: 12px;
   margin-bottom: 20px;
 }
 
 .tab-btn {
   flex: 1; border: none; background: transparent; padding: 8px;
-  border-radius: 8px; font-weight: 600; color: #64748b; cursor: pointer;
+  border-radius: 8px; font-weight: 600; color: var(--text-muted); cursor: pointer;
   transition: all 0.2s;
 }
 
-.tab-btn.active { background: white; color: #3b82f6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.tab-btn.active { background: var(--card-bg); color: #3b82f6; box-shadow: 0 2px 4px var(--shadow-color); }
 
 .records-list { flex: 1; overflow-y: auto; margin-bottom: 20px; min-height: 200px; }
 
-.empty-state { text-align: center; color: #94a3b8; margin-top: 40px; }
+.empty-state { text-align: center; color: var(--text-muted); margin-top: 40px; }
 
 .record-item {
   display: flex; align-items: center; padding: 12px 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-color);
 }
 .record-item:last-child { border-bottom: none; }
 
@@ -130,8 +133,8 @@ h2 { text-align: center; margin-top: 0; color: #0f172a; }
 .record-item:nth-child(3) .rank { color: #b45309; } /* Бронза */
 
 .info { display: flex; flex: 1; justify-content: space-between; align-items: baseline; }
-.time { font-size: 1.1rem; font-weight: 700; color: #334155; }
-.date { font-size: 0.85rem; color: #94a3b8; }
+.time { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+.date { font-size: 0.85rem; color: var(--text-muted); }
 
 .full-width { width: 100%; }
 </style>
