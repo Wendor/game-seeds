@@ -34,7 +34,7 @@
         </div>
       </div>
 
-      <div class="grid" ref="gridRef">
+      <div class="grid" ref="gridRef" v-auto-animate>
         <div 
           v-for="(cell, index) in cells" :key="cell.id"
           class="cell"
@@ -73,7 +73,7 @@
     </main>
 
     <footer class="controls">
-      <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver || isBotActive" :title="t('game.undo')">⤺</button>
+        <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver || isBotActive" :title="t('game.undo')">⤺</button>
       <button @click="showNextHint" class="btn btn-secondary btn-icon icon-text" :disabled="isGameOver || isBotActive" :title="t('game.hint')">⚐</button>
       <button @click="performAddLines" :disabled="isGameOver || isBotActive" class="btn btn-primary btn-lg">{{ t('game.add') }}</button>
       <button 
@@ -104,15 +104,19 @@ import { usePersistence } from '../composables/usePersistence';
 import { useGameHints } from '../composables/useGameHints';
 import { useFeedback } from '../composables/useFeedback';
 import { useI18n } from '../composables/useI18n';
+import { useStatistics } from '../composables/useStatistics'; // НОВОЕ
 import Toast from '../components/Toast.vue';
 import Modal from '../components/Modal.vue';
 import confetti from 'canvas-confetti';
 import '../assets/game.css';
 
 const { t } = useI18n();
+const { incrementGamesStarted } = useStatistics(); // НОВОЕ
+
 const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
 defineEmits(['back']);
 
+// ... (остальные composables без изменений) ...
 const { cells, nextId, generateCells, restoreCells, canMatch, addLines, findHint, cleanEmptyRows, findNeighbors } = useGameLogic();
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
 const { recordMatch, recordAdd, recordClean, popHistory, undo, clearHistory, hasHistory, history } = useHistory(cells);
@@ -122,21 +126,17 @@ const showRestartModal = ref(false);
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => cells.value.length > 0 && activeCount.value === 0);
 
-// --- Scroll & Ghost Logic ---
+// ... (Ghost Logic без изменений) ...
 type GhostItem = { value: number; index: number } | null;
-
 const gridContainerRef = ref<HTMLElement | null>(null);
 const gridRef = ref<HTMLElement | null>(null);
 const topGhostRef = ref<HTMLElement | null>(null);
 const bottomGhostRef = ref<HTMLElement | null>(null);
-
 const topGhosts = ref<GhostItem[]>(Array(9).fill(null));
 const bottomGhosts = ref<GhostItem[]>(Array(9).fill(null));
-
 const hasTopGhosts = computed(() => topGhosts.value.some(v => v !== null));
 const hasBottomGhosts = computed(() => bottomGhosts.value.some(v => v !== null));
 
-// Хелпер для поиска элемента ячейки под точкой
 const getCellIndexAtPoint = (x: number, y: number): number | null => {
   const elements = document.elementsFromPoint(x, y);
   for (const el of elements) {
@@ -148,67 +148,62 @@ const getCellIndexAtPoint = (x: number, y: number): number | null => {
 };
 
 const updateGhosts = () => {
-  if (!gridContainerRef.value || !gridRef.value || !topGhostRef.value || !bottomGhostRef.value || cells.value.length === 0) return;
+    // ... (код updateGhosts полностью тот же, что в прошлом шаге) ...
+    if (!gridContainerRef.value || !gridRef.value || !topGhostRef.value || !bottomGhostRef.value || cells.value.length === 0) return;
 
-  const topPanelRect = topGhostRef.value.getBoundingClientRect();
-  const bottomPanelRect = bottomGhostRef.value.getBoundingClientRect();
-  const gridRect = gridRef.value.getBoundingClientRect();
+    const topPanelRect = topGhostRef.value.getBoundingClientRect();
+    const bottomPanelRect = bottomGhostRef.value.getBoundingClientRect();
+    const gridRect = gridRef.value.getBoundingClientRect();
 
-  if (gridRect.top >= topPanelRect.bottom - 10 && gridRect.bottom <= bottomPanelRect.top + 10) {
-    topGhosts.value.fill(null);
-    bottomGhosts.value.fill(null);
-    return;
-  }
+    if (gridRect.top >= topPanelRect.bottom - 10 && gridRect.bottom <= bottomPanelRect.top + 10) {
+        topGhosts.value.fill(null);
+        bottomGhosts.value.fill(null);
+        return;
+    }
 
-  const firstCell = gridRef.value.children[0] as HTMLElement;
-  const cellWidth = firstCell ? firstCell.offsetWidth : 50;
-  const checkX = gridRect.left + (cellWidth / 2);
+    const firstCell = gridRef.value.children[0] as HTMLElement;
+    const cellWidth = firstCell ? firstCell.offsetWidth : 50;
+    const checkX = gridRect.left + (cellWidth / 2);
 
-  const checkTopY = topPanelRect.bottom - 5;
-  let topIndex = getCellIndexAtPoint(checkX, checkTopY);
-  
-  if (topIndex === null) {
-    topIndex = getCellIndexAtPoint(checkX, checkTopY - 15);
-  }
+    const checkTopY = topPanelRect.bottom - 5;
+    let topIndex = getCellIndexAtPoint(checkX, checkTopY);
+    if (topIndex === null) topIndex = getCellIndexAtPoint(checkX, checkTopY - 15);
 
-  for (let col = 0; col < 9; col++) {
-    let foundItem: GhostItem = null;
-    if (topIndex !== null) {
-      const startIdx = (Math.floor(topIndex / 9) * 9) + col;
-      for (let i = startIdx; i >= 0; i -= 9) {
-        if (i >= cells.value.length) continue; 
-        const cell = cells.value[i];
-        if (cell && cell.status !== 'crossed') {
-          foundItem = { value: cell.value, index: i };
-          break; 
+    for (let col = 0; col < 9; col++) {
+        let foundItem: GhostItem = null;
+        if (topIndex !== null) {
+        const startIdx = (Math.floor(topIndex / 9) * 9) + col;
+        for (let i = startIdx; i >= 0; i -= 9) {
+            if (i >= cells.value.length) continue; 
+            const cell = cells.value[i];
+            if (cell && cell.status !== 'crossed') {
+            foundItem = { value: cell.value, index: i };
+            break; 
+            }
         }
-      }
+        }
+        topGhosts.value[col] = foundItem;
     }
-    topGhosts.value[col] = foundItem;
-  }
 
-  const checkBottomY = bottomPanelRect.top + 5;
-  let bottomIndex = getCellIndexAtPoint(checkX, checkBottomY);
+    const checkBottomY = bottomPanelRect.top + 5;
+    let bottomIndex = getCellIndexAtPoint(checkX, checkBottomY);
+    if (bottomIndex === null) bottomIndex = getCellIndexAtPoint(checkX, checkBottomY + 15);
 
-  if (bottomIndex === null) {
-    bottomIndex = getCellIndexAtPoint(checkX, checkBottomY + 15);
-  }
-
-  for (let col = 0; col < 9; col++) {
-    let foundItem: GhostItem = null;
-    if (bottomIndex !== null) {
-      const startIdx = (Math.floor(bottomIndex / 9) * 9) + col;
-      for (let i = startIdx; i < cells.value.length; i += 9) {
-         if (i < 0) continue; 
-         const cell = cells.value[i];
-         if (cell && cell.status !== 'crossed') {
-           foundItem = { value: cell.value, index: i };
-           break;
-         }
-      }
+    for (let col = 0; col < 9; col++) {
+        let foundItem: GhostItem = null;
+        if (bottomIndex !== null) {
+        const startIdx = (Math.floor(bottomIndex / 9) * 9) + col;
+        for (let i = startIdx; i < cells.value.length; i += 9) {
+            if (i < 0) continue; 
+            const cell = cells.value[i];
+            if (cell && cell.status !== 'crossed') {
+            foundItem = { value: cell.value, index: i };
+            break;
+            }
+        }
+        }
+        bottomGhosts.value[col] = foundItem;
     }
-    bottomGhosts.value[col] = foundItem;
-  }
 };
 
 const handleScroll = () => requestAnimationFrame(updateGhosts);
@@ -232,6 +227,7 @@ const scrollToCell = (index: number) => {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
+// ... (useGameHints, useBot, usePlayer ... без изменений) ...
 const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints({ findHint, scrollToCell, showToast });
 
 const { isBotActive, toggleBot, stopBot } = useBot({
@@ -313,10 +309,12 @@ const performAddLines = () => {
   showToast(t('game.added', { n: count }));
 };
 
+// ОБНОВЛЕННЫЙ initGame
 const initGame = () => {
   resetSelection();
   clearHintUI();
   clearHistory();
+  
   if (props.resume) {
     const parsed = load();
     if (parsed) {
@@ -331,6 +329,10 @@ const initGame = () => {
         return;
     }
   }
+  
+  // Если новая игра - записываем статистику
+  incrementGamesStarted(props.mode);
+  
   generateCells(props.mode);
   resetTimer(0);
   clearSave();
@@ -375,26 +377,12 @@ const getCellClasses = (cell: Cell, index: number) => {
 };
 
 const shareResult = async () => {
-  // Добавляем текущую ссылку к тексту
   const url = window.location.href;
-  
-  // Получаем локализованное название режима ('Лайт', 'Lite' и т.д.)
-  const modeName = t(`records.${props.mode}`);
-  
+  const modeName = t(`stats.${props.mode}`); // Records уже переименован в stats, но ключи для режимов там остались
   const text = `${t('game.shareText', { mode: modeName, time: formattedTime.value })}\n${url}`;
   
-  if (navigator.share) {
-    try { 
-      await navigator.share({ 
-        title: 'Seeds', 
-        text: text,
-        url: url 
-      }); 
-    } catch {}
-  } else { 
-    await navigator.clipboard.writeText(text); 
-    showToast(t('game.copied')); 
-  }
+  if (navigator.share) try { await navigator.share({ title: 'Seeds', text, url }); } catch {}
+  else { await navigator.clipboard.writeText(text); showToast(t('game.copied')); }
 };
 </script>
 

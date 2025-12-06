@@ -2,28 +2,49 @@
   <section class="screen-leaderboard">
     <div class="leaderboard-card">
       <h2>
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="title-icon"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-        {{ t('records.title') }}
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="title-icon"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        {{ t('stats.title') }}
       </h2>
 
       <div class="tabs">
         <button @click="activeTab = 'easy'" class="tab-btn" :class="{ active: activeTab === 'easy' }">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>
-          {{ t('records.easy') }}
+          {{ t('stats.easy') }}
         </button>
         <button @click="activeTab = 'classic'" class="tab-btn" :class="{ active: activeTab === 'classic' }">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
-          {{ t('records.classic') }}
+          {{ t('stats.classic') }}
         </button>
         <button @click="activeTab = 'random'" class="tab-btn" :class="{ active: activeTab === 'random' }">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 8h.01"></path><path d="M8 8h.01"></path><path d="M8 16h.01"></path><path d="M16 16h.01"></path><path d="M12 12h.01"></path></svg>
-          {{ t('records.random') }}
+          {{ t('stats.random') }}
         </button>
       </div>
 
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-value">{{ currentStats.started }}</div>
+          <div class="stat-label">{{ t('stats.played') }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value">{{ currentStats.won }}</div>
+          <div class="stat-label">{{ t('stats.won') }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value">{{ currentStats.winRate }}%</div>
+          <div class="stat-label">{{ t('stats.rate') }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value text-green">{{ currentStats.bestTime }}</div>
+          <div class="stat-label">{{ t('stats.best') }}</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
       <div class="records-list">
         <div v-if="currentRecords.length === 0" class="empty-state">
-          {{ t('records.empty') }}
+          {{ t('stats.empty') }}
         </div>
         
         <div 
@@ -41,8 +62,8 @@
       </div>
 
       <button @click="$emit('close')" class="btn btn-secondary btn-lg full-width btn-back">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-svg"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-        {{ t('records.back') }}
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        {{ t('stats.back') }}
       </button>
     </div>
   </section>
@@ -52,34 +73,51 @@
 import { ref, computed, onMounted } from 'vue';
 import type { GameMode, GameRecord } from '../types';
 import { useI18n } from '../composables/useI18n';
+import { useStatistics } from '../composables/useStatistics';
 
 const { t, currentLang } = useI18n();
+const { getStats } = useStatistics();
 defineEmits(['close']);
 
 const activeTab = ref<GameMode>('easy');
 const allRecords = ref<GameRecord[]>([]);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const generalStats = ref<any>({ easy: { started: 0 }, classic: { started: 0 }, random: { started: 0 } });
 
-// Загружаем данные при открытии
 onMounted(() => {
   const data = localStorage.getItem('seeds-records');
   if (data) {
-    try {
-      allRecords.value = JSON.parse(data);
-    } catch (e) {
-      console.error('Ошибка чтения рекордов', e);
-    }
+    try { allRecords.value = JSON.parse(data); } catch (e) { console.error(e); }
   }
+  generalStats.value = getStats();
 });
 
-// Фильтруем и сортируем (лучшее время сверху)
 const currentRecords = computed(() => {
   return allRecords.value
     .filter(r => r.mode === activeTab.value)
     .sort((a, b) => a.time - b.time)
-    .slice(0, 10); // Показываем только топ-10
+    .slice(0, 10);
 });
 
-// Форматирование времени (95 -> 01:35)
+const currentStats = computed(() => {
+  const mode = activeTab.value;
+  const started = generalStats.value[mode]?.started || 0;
+  
+  const modeRecords = allRecords.value.filter(r => r.mode === mode);
+  const won = modeRecords.length;
+  
+  // Винрейт с защитой от > 100%
+  const winRate = Math.min(100, started > 0 ? Math.round((won / started) * 100) : 0);
+  
+  let bestTime = '—';
+  if (modeRecords.length > 0) {
+    const minTime = Math.min(...modeRecords.map(r => r.time));
+    bestTime = formatTime(minTime);
+  }
+
+  return { started, won, winRate, bestTime };
+});
+
 const formatTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
@@ -108,17 +146,19 @@ const formatDate = (ts: number) => {
 }
 
 h2 { 
-  text-align: center; margin-top: 0; 
-  color: var(--text-main);
+  text-align: center; margin-top: 0; color: var(--text-main);
   display: flex; align-items: center; justify-content: center; gap: 10px;
 }
+.title-icon { color: #3b82f6; }
 
-.title-icon { color: #eab308; } /* Золотой цвет для кубка */
+/* === ТАБЫ И КНОПКИ === */
 
 .tabs {
-  display: flex; background: var(--btn-sec-bg); padding: 4px; border-radius: 12px;
+  display: flex; 
+  background: var(--btn-sec-bg); 
+  padding: 4px; border-radius: 12px;
   margin-bottom: 20px;
-  overflow-x: auto; /* На всякий случай для маленьких экранов */
+  overflow-x: auto;
 }
 
 .tab-btn {
@@ -129,36 +169,99 @@ h2 {
   font-size: 0.9rem;
   white-space: nowrap;
 }
-
 .tab-icon { opacity: 0.7; }
 .tab-btn.active .tab-icon { opacity: 1; }
 
-.tab-btn.active { background: var(--card-bg); color: #3b82f6; box-shadow: 0 2px 4px var(--shadow-color); }
+/* Активная кнопка в светлой теме */
+.tab-btn.active { 
+  background: var(--card-bg); 
+  color: #3b82f6; 
+  box-shadow: 0 2px 4px var(--shadow-color); 
+}
 
-.records-list { flex: 1; overflow-y: auto; margin-bottom: 20px; min-height: 200px; }
+/* === ИСПРАВЛЕНИЯ ДЛЯ ТЕМНОЙ ТЕМЫ === */
 
-.empty-state { text-align: center; color: var(--text-muted); margin-top: 40px; }
+/* Контейнер табов в темной теме делаем ТЕМНЕЕ (вдавленным), чтобы кнопки выделялись */
+body.dark-mode .tabs {
+  background-color: rgba(0, 0, 0, 0.3); /* Полупрозрачный черный */
+  border: 1px solid rgba(255, 255, 255, 0.05); /* Еле заметная рамка */
+}
+
+/* Активная кнопка в темной теме - делаем её СВЕТЛЕЕ контейнера (выпуклой) */
+body.dark-mode .tab-btn.active {
+  background-color: #334155; /* Slate 700 - светлее фона карточки */
+  color: #60a5fa; /* Светло-синий */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .tab-btn:not(.active):hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* === КОНЕЦ ИСПРАВЛЕНИЙ === */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-box {
+  background: var(--btn-sec-bg);
+  border-radius: 16px;
+  padding: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+body.dark-mode .stat-box {
+  background-color: rgba(0, 0, 0, 0.2); /* Чуть темнее для боксов статистики */
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+.stat-value.text-green { color: #10b981; }
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0 0 10px 0;
+}
+
+.records-list { flex: 1; overflow-y: auto; margin-bottom: 20px; min-height: 150px; }
+
+.empty-state { text-align: center; color: var(--text-muted); margin-top: 30px; }
 
 .record-item {
-  display: flex; align-items: center; padding: 12px 0;
+  display: flex; align-items: center; padding: 10px 0;
   border-bottom: 1px solid var(--border-color);
 }
 .record-item:last-child { border-bottom: none; }
 
 .rank {
-  font-size: 1.2rem; font-weight: 800; color: #cbd5e1; width: 40px;
+  font-size: 1.1rem; font-weight: 800; color: #cbd5e1; width: 36px;
 }
-.record-item:nth-child(1) .rank { color: #eab308; } /* Золото */
-.record-item:nth-child(2) .rank { color: #94a3b8; } /* Серебро */
-.record-item:nth-child(3) .rank { color: #b45309; } /* Бронза */
+.record-item:nth-child(1) .rank { color: #eab308; }
+.record-item:nth-child(2) .rank { color: #94a3b8; }
+.record-item:nth-child(3) .rank { color: #b45309; }
 
 .info { display: flex; flex: 1; justify-content: space-between; align-items: baseline; }
 .time { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
 .date { font-size: 0.85rem; color: var(--text-muted); }
 
 .full-width { width: 100%; }
-
-.btn-back {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
+.btn-back { display: flex; align-items: center; justify-content: center; gap: 8px; }
 </style>

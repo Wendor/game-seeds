@@ -12,7 +12,7 @@ const dictionary = {
             classic: 'Классика (1-19)',
             random: 'Случайные числа',
             install: 'Установить приложение',
-            records: 'Рекорды',
+            stats: 'Статистика',
             rules: 'Правила игры',
             saveInfo: '{mode} • {time}'
         },
@@ -50,13 +50,18 @@ const dictionary = {
             p3: 'Если ходов нет — жмите кнопку "Добавить".',
             btn: 'Всё понятно'
         },
-        records: {
+        stats: {
             title: 'Рекорды',
             easy: 'Лайт',
             classic: 'Классика',
             random: 'Рандом',
             empty: 'Пока нет побед. Сыграем?',
-            back: 'Назад в меню'
+            back: 'Назад в меню',
+            played: 'Игр начато',
+            won: 'Побед',
+            rate: 'Винрейт',
+            best: 'Лучшее время',
+            avg: 'Среднее время'
         }
     },
     en: {
@@ -68,7 +73,7 @@ const dictionary = {
             classic: 'Classic (1-19)',
             random: 'Random Numbers',
             install: 'Install App',
-            records: 'Leaderboard',
+            stats: 'Statistics',
             rules: 'How to play',
             saveInfo: '{mode} • {time}'
         },
@@ -106,13 +111,18 @@ const dictionary = {
             p3: 'If there are no moves left, press "Add Rows".',
             btn: 'Got it'
         },
-        records: {
+        stats: {
             title: 'Best Scores',
             easy: 'Lite',
             classic: 'Classic',
             random: 'Random',
             empty: 'No wins yet. Let\'s play?',
-            back: 'Back to Menu'
+            back: 'Back to Menu',
+            played: 'Games Started',
+            won: 'Wins',
+            rate: 'Win Rate',
+            best: 'Best Time',
+            avg: 'Avg Time'
         }
     }
 };
