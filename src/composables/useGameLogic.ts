@@ -209,27 +209,32 @@ export function useGameLogic() {
     };
 
     const cleanEmptyRows = (): number => {
-        // ... старый код cleanEmptyRows ...
         const ROW_SIZE = 9;
         let rowsRemoved = 0;
-        const newCells: Cell[] = [];
         let hasChanges = false;
+
+        // Собираем новый массив (это предотвращает "мигание" стилей)
+        const newCells: Cell[] = [];
 
         for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
             const chunk = cells.value.slice(i, i + ROW_SIZE);
+
+            // Проверяем: ряд полный (9 шт) и все зачеркнуты
             const isEmptyRow = chunk.length === ROW_SIZE && chunk.every(c => c.status === 'crossed');
 
             if (isEmptyRow) {
                 hasChanges = true;
                 rowsRemoved++;
+                // Не добавляем этот чанк в новый массив
             } else {
                 newCells.push(...chunk);
             }
         }
 
         if (hasChanges) {
+            // Атомарная замена массива: Vue видит разницу и корректно удаляет элементы
             cells.value = newCells;
-            rebuildLinks(); // <--- ОБЯЗАТЕЛЬНО: индексы сместились, нужно перелинковать всё
+            rebuildLinks(); // Обязательно перестраиваем связи оптимизации
         }
 
         return rowsRemoved;

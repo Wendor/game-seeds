@@ -66,7 +66,15 @@
         {{ t('game.win') }}
         <div class="final-time">{{ t('game.time', { time: formattedTime }) }}</div>
         <div class="win-actions">
-          <button @click="shareResult" class="btn btn-success btn-lg">{{ t('game.share') }}</button>
+          <button @click="shareResult" class="btn btn-success btn-lg" style="gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+              <polyline points="16 6 12 2 8 6"></polyline>
+              <line x1="12" y1="2" x2="12" y2="15"></line>
+            </svg>
+            {{ t('game.share') }}
+          </button>
+          
           <button @click="$emit('back')" class="btn btn-primary btn-lg">{{ t('game.toMenu') }}</button>
         </div>
       </div>
@@ -104,29 +112,40 @@ import { usePersistence } from '../composables/usePersistence';
 import { useGameHints } from '../composables/useGameHints';
 import { useFeedback } from '../composables/useFeedback';
 import { useI18n } from '../composables/useI18n';
-import { useStatistics } from '../composables/useStatistics'; // НОВОЕ
+import { useStatistics } from '../composables/useStatistics';
 import Toast from '../components/Toast.vue';
 import Modal from '../components/Modal.vue';
 import confetti from 'canvas-confetti';
 import '../assets/game.css';
 
 const { t } = useI18n();
-const { incrementGamesStarted } = useStatistics(); // НОВОЕ
+const { incrementGamesStarted } = useStatistics();
 
 const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
-defineEmits(['back']);
+const emit = defineEmits(['back', 'restart']);
 
-// ... (остальные composables без изменений) ...
-const { cells, nextId, generateCells, restoreCells, canMatch, addLines, findHint, cleanEmptyRows, findNeighbors, updateLinksAfterCross } = useGameLogic();
+const { 
+  cells, 
+  nextId, 
+  generateCells, 
+  restoreCells, 
+  canMatch, 
+  addLines, 
+  findHint, 
+  cleanEmptyRows, 
+  findNeighbors,
+  updateLinksAfterCross // Добавлено для оптимизации
+} = useGameLogic();
+
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
 const { recordMatch, recordAdd, recordClean, popHistory, undo, clearHistory, hasHistory, history } = useHistory(cells);
 const { toastMessage, showToast, playSound, haptic } = useFeedback();
 
 const showRestartModal = ref(false);
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
-const isGameOver = computed(() => cells.value.length > 0 && activeCount.value === 0);
+const isGameOver = computed(() => nextId.value > 0 && activeCount.value === 0);
 
-// ... (Ghost Logic без изменений) ...
+// --- GHOST LOGIC ---
 type GhostItem = { value: number; index: number } | null;
 const gridContainerRef = ref<HTMLElement | null>(null);
 const gridRef = ref<HTMLElement | null>(null);
@@ -148,7 +167,6 @@ const getCellIndexAtPoint = (x: number, y: number): number | null => {
 };
 
 const updateGhosts = () => {
-    // ... (код updateGhosts полностью тот же, что в прошлом шаге) ...
     if (!gridContainerRef.value || !gridRef.value || !topGhostRef.value || !bottomGhostRef.value || cells.value.length === 0) return;
 
     const topPanelRect = topGhostRef.value.getBoundingClientRect();
@@ -227,12 +245,19 @@ const scrollToCell = (index: number) => {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
-// ... (useGameHints, useBot, usePlayer ... без изменений) ...
+// --- COMPOSABLES INIT ---
+
 const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints({ findHint, scrollToCell, showToast });
 
 const { isBotActive, toggleBot, stopBot } = useBot({
     cells,
-    gameActions: { canMatch, findNeighbors, addLines: () => addLines(props.mode), cleanEmptyRows, updateLinksAfterCross },
+    gameActions: { 
+      canMatch, 
+      findNeighbors, 
+      addLines: () => addLines(props.mode), 
+      cleanEmptyRows,
+      updateLinksAfterCross // Передаем метод оптимизации
+    },
     historyActions: { recordMatch, recordAdd, recordClean, popHistory },
     uiActions: { playSound, showToast, scrollToCell },
     gameState: { isGameOver }
@@ -240,7 +265,12 @@ const { isBotActive, toggleBot, stopBot } = useBot({
 
 const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = usePlayer({
     cells,
-    gameActions: { canMatch, findNeighbors, cleanEmptyRows, updateLinksAfterCross },
+    gameActions: { 
+      canMatch, 
+      findNeighbors, 
+      cleanEmptyRows,
+      updateLinksAfterCross // Передаем метод оптимизации
+    },
     historyActions: { recordMatch, recordClean, popHistory },
     uiActions: { playSound, showToast, haptic, clearHintUI },
     state: { isBotActive }
@@ -309,7 +339,6 @@ const performAddLines = () => {
   showToast(t('game.added', { n: count }));
 };
 
-// ОБНОВЛЕННЫЙ initGame
 const initGame = () => {
   resetSelection();
   clearHintUI();
@@ -330,7 +359,6 @@ const initGame = () => {
     }
   }
   
-  // Если новая игра - записываем статистику
   incrementGamesStarted(props.mode);
   
   generateCells(props.mode);
@@ -344,7 +372,8 @@ const confirmRestart = () => {
   playSound('restart');
   stopBot();
   clearSave();
-  initGame();
+  // ВМЕСТО initGame() ТЕПЕРЬ ОТПРАВЛЯЕМ СОБЫТИЕ РОДИТЕЛЮ
+  emit('restart');
   showRestartModal.value = false;
 };
 
@@ -378,7 +407,7 @@ const getCellClasses = (cell: Cell, index: number) => {
 
 const shareResult = async () => {
   const url = window.location.href;
-  const modeName = t(`stats.${props.mode}`); // Records уже переименован в stats, но ключи для режимов там остались
+  const modeName = t(`stats.${props.mode}`);
   const text = `${t('game.shareText', { mode: modeName, time: formattedTime.value })}\n${url}`;
   
   if (navigator.share) try { await navigator.share({ title: 'Seeds', text, url }); } catch {}

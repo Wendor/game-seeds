@@ -236,6 +236,7 @@ body.dark-mode .ghost-cell.is-matchable {
     border-color: transparent;
     text-decoration: line-through;
     cursor: default;
+    opacity: 0.2 !important;
 }
 
 .cell.hint {

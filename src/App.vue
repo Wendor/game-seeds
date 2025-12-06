@@ -28,6 +28,7 @@
         :resume="isResumeGame"
         :key="gameKey"
         @back="currentScreen = 'menu'"
+        @restart="handleRestart"
       />
       
     </Transition>
@@ -51,6 +52,7 @@ type ScreenType = 'menu' | 'rules' | 'game' | 'leaderboard';
 const currentScreen = ref<ScreenType>('menu');
 const activeGameMode = ref<GameMode>('classic');
 const isResumeGame = ref(false);
+const restartCounter = ref(0); // Счетчик для принудительного пересоздания игры
 
 // --- ТЕМНАЯ ТЕМА ---
 const isDark = ref(false);
@@ -100,17 +102,40 @@ onMounted(() => {
 });
 // -------------------
 
-const gameKey = computed(() => `${activeGameMode.value}-${isResumeGame.value}-${Date.now()}`);
+// Ключ теперь зависит от счетчика рестартов.
+// При его изменении Vue уничтожит старый компонент Game и создаст новый.
+const gameKey = computed(() => `${activeGameMode.value}-${restartCounter.value}`);
 
 const handleStartGame = (mode: GameMode) => {
   activeGameMode.value = mode;
   isResumeGame.value = false;
+  restartCounter.value++; // Гарантируем свежую игру
   currentScreen.value = 'game';
 };
 
 const handleContinueGame = () => {
+  // Исправление бага: загружаем режим из сохранения перед стартом
+  const savedData = localStorage.getItem('seeds-save');
+  if (savedData) {
+    try {
+      const parsed = JSON.parse(savedData);
+      if (parsed.mode) {
+        activeGameMode.value = parsed.mode;
+      }
+    } catch (e) {
+      console.error('Ошибка чтения сохранения', e);
+    }
+  }
+
   isResumeGame.value = true;
+  // Не меняем restartCounter, чтобы не сбросить состояние компонента, если он закеширован
+  // Но так как у нас v-if/v-else, он скорее всего создастся заново, но с флагом resume=true
   currentScreen.value = 'game';
+};
+
+const handleRestart = () => {
+  isResumeGame.value = false; // Это новая игра, а не продолжение
+  restartCounter.value++;     // Изменяем ключ -> Vue полностью пересоздает <Game />
 };
 </script>
 
