@@ -16,11 +16,29 @@
       <div class="stats">{{ t('game.total') }}: <strong>{{ activeCount }}</strong></div>
     </header>
 
-    <main class="grid-container">
-      <div class="grid">
+    <main class="grid-container" ref="gridContainerRef" @scroll="handleScroll">
+      
+      <div class="ghost-row sticky-top" ref="topGhostRef" :class="{ visible: hasTopGhosts }">
+        <div 
+          v-for="(item, col) in topGhosts" 
+          :key="'top-' + col" 
+          class="cell ghost-cell"
+          :class="{ 
+            empty: !item,
+            'is-neighbor': item && isNeighbor(item.index),
+            'is-matchable': item && isMatchable(item.index)
+          }"
+          @click="handleGhostClick(item)"
+        >
+          {{ item ? item.value : '' }}
+        </div>
+      </div>
+
+      <div class="grid" ref="gridRef">
         <div 
           v-for="(cell, index) in cells" :key="cell.id"
           class="cell"
+          :data-index="index"
           :class="getCellClasses(cell, index)"
           @click="handleCellClick(index)"
         >
@@ -28,6 +46,22 @@
         </div>
       </div>
       
+      <div class="ghost-row sticky-bottom" ref="bottomGhostRef" :class="{ visible: hasBottomGhosts }">
+        <div 
+          v-for="(item, col) in bottomGhosts" 
+          :key="'bot-' + col" 
+          class="cell ghost-cell"
+          :class="{ 
+            empty: !item,
+            'is-neighbor': item && isNeighbor(item.index),
+            'is-matchable': item && isMatchable(item.index)
+          }"
+          @click="handleGhostClick(item)"
+        >
+          {{ item ? item.value : '' }}
+        </div>
+      </div>
+
       <div v-if="isGameOver" class="win-message">
         {{ t('game.win') }}
         <div class="final-time">{{ t('game.time', { time: formattedTime }) }}</div>
@@ -36,16 +70,12 @@
           <button @click="$emit('back')" class="btn btn-primary btn-lg">{{ t('game.toMenu') }}</button>
         </div>
       </div>
-      <div class="spacer"></div>
     </main>
 
     <footer class="controls">
       <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver || isBotActive" :title="t('game.undo')">⤺</button>
-      
       <button @click="showNextHint" class="btn btn-secondary btn-icon icon-text" :disabled="isGameOver || isBotActive" :title="t('game.hint')">⚐</button>
-      
       <button @click="performAddLines" :disabled="isGameOver || isBotActive" class="btn btn-primary btn-lg">{{ t('game.add') }}</button>
-
       <button 
         @click="handleToggleBot" 
         class="btn btn-icon" 
@@ -53,29 +83,18 @@
         :disabled="isGameOver"
         :title="t('game.auto')"
       >
-        <svg v-if="isBotActive" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-          <rect x="6" y="6" width="12" height="12" rx="2" />
-        </svg>
-        <svg v-else xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="10" rx="2" />
-          <circle cx="12" cy="5" r="2" />
-          <path d="M12 7v4" />
-          <line x1="8" y1="16" x2="8" y2="16" />
-          <line x1="16" y1="16" x2="16" y2="16" />
-        </svg>
+        <svg v-if="isBotActive" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2" /><circle cx="12" cy="5" r="2" /><path d="M12 7v4" /><line x1="8" y1="16" x2="8" y2="16" /><line x1="16" y1="16" x2="16" y2="16" /></svg>
       </button>
-
       <button @click="showRestartModal = true" class="btn btn-danger btn-icon" :title="t('game.restart')">↺</button>
     </footer>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import type { GameMode, GameRecord, Cell } from '../types';
 import { GAME_CONFIG } from '../config';
-
-// Composables
 import { useGameLogic } from '../composables/useGameLogic';
 import { useTimer } from '../composables/useTimer';
 import { useHistory } from '../composables/useHistory';
@@ -85,8 +104,6 @@ import { usePersistence } from '../composables/usePersistence';
 import { useGameHints } from '../composables/useGameHints';
 import { useFeedback } from '../composables/useFeedback';
 import { useI18n } from '../composables/useI18n';
-
-// Components & Assets
 import Toast from '../components/Toast.vue';
 import Modal from '../components/Modal.vue';
 import confetti from 'canvas-confetti';
@@ -96,44 +113,149 @@ const { t } = useI18n();
 const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
 defineEmits(['back']);
 
-// 1. Core Systems
 const { cells, nextId, generateCells, restoreCells, canMatch, addLines, findHint, cleanEmptyRows, findNeighbors } = useGameLogic();
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
 const { recordMatch, recordAdd, recordClean, popHistory, undo, clearHistory, hasHistory, history } = useHistory(cells);
 const { toastMessage, showToast, playSound, haptic } = useFeedback();
 
-// 2. UI Helpers
 const showRestartModal = ref(false);
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => cells.value.length > 0 && activeCount.value === 0);
 
+// --- Scroll & Ghost Logic ---
+type GhostItem = { value: number; index: number } | null;
+
+const gridContainerRef = ref<HTMLElement | null>(null);
+const gridRef = ref<HTMLElement | null>(null);
+const topGhostRef = ref<HTMLElement | null>(null);
+const bottomGhostRef = ref<HTMLElement | null>(null);
+
+const topGhosts = ref<GhostItem[]>(Array(9).fill(null));
+const bottomGhosts = ref<GhostItem[]>(Array(9).fill(null));
+
+const hasTopGhosts = computed(() => topGhosts.value.some(v => v !== null));
+const hasBottomGhosts = computed(() => bottomGhosts.value.some(v => v !== null));
+
+// Хелперы для работы с DOM
+const getCellIndexAtPoint = (x: number, y: number): number | null => {
+  // elementsFromPoint "пробивает" сквозь слои (панели призраков)
+  const elements = document.elementsFromPoint(x, y);
+  for (const el of elements) {
+    // Ищем только реальные ячейки (у них есть data-index, у призраков - нет)
+    if (el.classList.contains('cell') && el.hasAttribute('data-index')) {
+      return parseInt(el.getAttribute('data-index')!, 10);
+    }
+  }
+  return null;
+};
+
+const updateGhosts = () => {
+  if (!gridContainerRef.value || !gridRef.value || !topGhostRef.value || !bottomGhostRef.value || cells.value.length === 0) return;
+
+  const topPanelRect = topGhostRef.value.getBoundingClientRect();
+  const bottomPanelRect = bottomGhostRef.value.getBoundingClientRect();
+  const gridRect = gridRef.value.getBoundingClientRect();
+
+  // Если сетка целиком видна (с запасом 10px), очищаем
+  if (gridRect.top >= topPanelRect.bottom - 10 && gridRect.bottom <= bottomPanelRect.top + 10) {
+    topGhosts.value.fill(null);
+    bottomGhosts.value.fill(null);
+    return;
+  }
+
+  // Находим X-координату центра первой колонки
+  const firstCell = gridRef.value.children[0] as HTMLElement;
+  const cellWidth = firstCell ? firstCell.offsetWidth : 50;
+  const checkX = gridRect.left + (cellWidth / 2);
+
+  // --- 1. ВЕРХНИЙ ПРИЗРАК ---
+  // Проверяем точку чуть ВЫШЕ нижнего края верхней панели.
+  const checkTopY = topPanelRect.bottom - 5;
+  let topIndex = getCellIndexAtPoint(checkX, checkTopY);
+  
+  // ФОЛЛБЭК: Если попали в промежуток (gap), пробуем искать чуть выше (вглубь панели)
+  if (topIndex === null) {
+    topIndex = getCellIndexAtPoint(checkX, checkTopY - 15);
+  }
+
+  for (let col = 0; col < 9; col++) {
+    let foundItem: GhostItem = null;
+    if (topIndex !== null) {
+      // Ищем ВВЕРХ, начиная с ряда, который скрыт под панелью
+      const startIdx = (Math.floor(topIndex / 9) * 9) + col;
+      for (let i = startIdx; i >= 0; i -= 9) {
+        if (i >= cells.value.length) continue; 
+        const cell = cells.value[i];
+        if (cell && cell.status !== 'crossed') {
+          foundItem = { value: cell.value, index: i };
+          break; 
+        }
+      }
+    }
+    topGhosts.value[col] = foundItem;
+  }
+
+  // --- 2. НИЖНИЙ ПРИЗРАК ---
+  // Проверяем точку чуть НИЖЕ верхнего края нижней панели.
+  const checkBottomY = bottomPanelRect.top + 5;
+  let bottomIndex = getCellIndexAtPoint(checkX, checkBottomY);
+
+  // ФОЛЛБЭК: Если попали в промежуток, пробуем искать чуть ниже (вглубь панели)
+  if (bottomIndex === null) {
+    bottomIndex = getCellIndexAtPoint(checkX, checkBottomY + 15);
+  }
+
+  for (let col = 0; col < 9; col++) {
+    let foundItem: GhostItem = null;
+    if (bottomIndex !== null) {
+      // Ищем ВНИЗ, начиная с ряда, который скрыт под панелью
+      const startIdx = (Math.floor(bottomIndex / 9) * 9) + col;
+      for (let i = startIdx; i < cells.value.length; i += 9) {
+         if (i < 0) continue; 
+         const cell = cells.value[i];
+         if (cell && cell.status !== 'crossed') {
+           foundItem = { value: cell.value, index: i };
+           break;
+         }
+      }
+    }
+    bottomGhosts.value[col] = foundItem;
+  }
+};
+
+const handleScroll = () => requestAnimationFrame(updateGhosts);
+// Обновляем при изменении данных и ресайзе
+watch(cells, () => nextTick(updateGhosts), { deep: true });
+
+// --- (Остальной код) ---
+const isNeighbor = (index: number) => neighborIndices.value.includes(index);
+const isMatchable = (index: number) => {
+  return selectedIndex.value !== null && 
+         neighborIndices.value.includes(index) && 
+         canMatch(selectedIndex.value, index);
+};
+
+const handleGhostClick = (item: GhostItem) => {
+  if (item && item.index !== undefined) {
+    handleCellClick(item.index);
+  }
+};
+
 const scrollToCell = (index: number) => {
-    const el = document.querySelectorAll('.cell')[index];
+    const el = document.querySelectorAll('.grid .cell')[index];
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
-// 3. Hints System
-const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints({
-    findHint,
-    scrollToCell,
-    showToast
-});
+const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints({ findHint, scrollToCell, showToast });
 
-// 4. Bot System
 const { isBotActive, toggleBot, stopBot } = useBot({
     cells,
-    gameActions: { 
-        canMatch, 
-        findNeighbors, 
-        addLines: () => addLines(props.mode), 
-        cleanEmptyRows 
-    },
+    gameActions: { canMatch, findNeighbors, addLines: () => addLines(props.mode), cleanEmptyRows },
     historyActions: { recordMatch, recordAdd, recordClean, popHistory },
     uiActions: { playSound, showToast, scrollToCell },
     gameState: { isGameOver }
 });
 
-// 5. Player System
 const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = usePlayer({
     cells,
     gameActions: { canMatch, findNeighbors, cleanEmptyRows },
@@ -142,10 +264,7 @@ const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = useP
     state: { isBotActive }
 });
 
-// 6. Persistence
 const { save, load, clear: clearSave } = usePersistence('seeds-save', { cells, secondsElapsed, history, nextId });
-
-// --- Controller Logic ---
 
 watch(cells, () => { if (!isGameOver.value) save(props.mode); }, { deep: true });
 
@@ -184,6 +303,7 @@ const performUndo = () => {
     resetSelection();
     clearHintUI();
     resetHintIndex();
+    nextTick(updateGhosts); 
   }
 };
 
@@ -193,18 +313,17 @@ const performAddLines = () => {
     haptic.medium();
     return;
   }
-  
   const count = addLines(props.mode);
-  
   if (count > 0) recordAdd(count);
   playSound('add');
   haptic.impact();
-  
   clearHintUI();
   resetSelection();
   resetHintIndex();
-  
-  setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+  setTimeout(() => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    updateGhosts();
+  }, 100);
   showToast(t('game.added', { n: count }));
 };
 
@@ -212,7 +331,6 @@ const initGame = () => {
   resetSelection();
   clearHintUI();
   clearHistory();
-  
   if (props.resume) {
     const parsed = load();
     if (parsed) {
@@ -223,6 +341,7 @@ const initGame = () => {
             parsed.history.forEach((h: any) => history.value.push(h));
         }
         startTimer();
+        nextTick(updateGhosts);
         return;
     }
   }
@@ -230,6 +349,7 @@ const initGame = () => {
   resetTimer(0);
   clearSave();
   startTimer();
+  nextTick(updateGhosts);
 };
 
 const confirmRestart = () => {
@@ -240,10 +360,14 @@ const confirmRestart = () => {
   showRestartModal.value = false;
 };
 
-onMounted(initGame);
+onMounted(() => {
+  initGame();
+  window.addEventListener('resize', updateGhosts);
+});
 onUnmounted(() => {
   stopTimer();
   stopBot();
+  window.removeEventListener('resize', updateGhosts);
   if (!isGameOver.value) save(props.mode);
 });
 

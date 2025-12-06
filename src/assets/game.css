@@ -3,17 +3,13 @@
     flex-direction: column;
     height: 100vh;
     height: 100dvh;
-    /* Фикс для мобильных браузеров */
     background-color: var(--bg-main);
     overflow: hidden;
-    /* Запрещаем скролл на уровне body внутри игры */
 }
 
 .header {
     position: relative;
-    /* Убираем fixed */
     flex: 0 0 auto;
-    /* Не сжиматься */
     z-index: 30;
     background: var(--header-bg);
     padding: 12px 16px;
@@ -59,30 +55,146 @@
     color: #34d399;
 }
 
+/* --- КОНТЕЙНЕР И СЕТКА --- */
+
 .grid-container {
     flex: 1;
-    /* Занимает все свободное пространство */
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 15px;
-    padding-top: 20px;
-    /* Отступ от хедера */
+    padding-top: 0;
+    padding-bottom: 0;
     width: 100%;
     box-sizing: border-box;
     overflow-y: auto;
-    /* Скролл только здесь */
     content-visibility: auto;
-    contain-intrinsic-size: 1000px;
+    position: relative;
 }
 
-.grid {
+.grid,
+.ghost-row {
     display: grid;
     grid-template-columns: repeat(9, 1fr);
     gap: 4px;
     width: 100%;
     max-width: 500px;
+    margin: 4px 0;
 }
+
+/* --- Призрачные строки (Хелперы) --- */
+
+.ghost-row {
+    position: sticky;
+    z-index: 25;
+
+    /* Плотный фон, чтобы перекрыть прокручиваемые цифры */
+    /* Используем цвет фона страницы, чтобы они сливались */
+    background: var(--bg-main);
+
+    /* Добавляем легкую тень и границу, чтобы отделить панель от поля */
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.1);
+
+    pointer-events: auto;
+    transition: opacity 0.2s ease;
+    opacity: 0;
+
+    display: grid;
+    align-items: center;
+}
+
+.ghost-row.visible {
+    opacity: 1;
+}
+
+.ghost-row.sticky-top {
+    top: 0;
+    padding: 4px 0;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ghost-row.sticky-bottom {
+    position: sticky;
+    bottom: 0;
+    padding: 4px 0;
+    margin-top: 0;
+    border-top: 1px solid var(--border-color);
+    z-index: 26;
+}
+
+/* СТИЛИ ЯЧЕЙКИ-ПРИЗРАКА */
+.ghost-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 800;
+    border-radius: 8px;
+
+    /* Сброс масштаба */
+    transform: none;
+
+    /* !important нужен, чтобы перебить стили обычной .cell */
+    background-color: transparent !important;
+    color: #53ca7f80 !important;
+    /* Зеленый текст (Green-600) */
+    border: 2px dashed #4ade8080 !important;
+    /* Зеленая рамка (Green-400) */
+
+    opacity: 1;
+    transition: all 0.1s;
+    cursor: pointer;
+}
+
+/* Темная тема для призраков */
+:global(body.dark-mode) .ghost-cell {
+    color: #4ade8080 !important;
+    /* Светло-зеленый текст */
+    border-color: #15803d80 !important;
+    /* Темно-зеленая рамка */
+}
+
+.ghost-cell:active {
+    transform: scale(0.95);
+    background-color: rgba(74, 222, 128, 0.1) !important;
+}
+
+.ghost-cell.empty {
+    background: transparent !important;
+    border: transparent !important;
+    color: transparent !important;
+    cursor: default;
+}
+
+/* Соседи в призраках */
+.ghost-cell.is-neighbor {
+    border-color: #3b82f6 !important;
+    color: #2563eb !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    animation: pulse-border-blue 1.5s infinite;
+}
+
+:global(body.dark-mode) .ghost-cell.is-neighbor {
+    color: #60a5fa !important;
+    border-color: #60a5fa !important;
+    background-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.ghost-cell.is-matchable {
+    border-color: #eab308 !important;
+    color: #ca8a04 !important;
+    background-color: rgba(253, 224, 71, 0.2) !important;
+    animation: pulse-border-yellow 1.5s infinite;
+}
+
+:global(body.dark-mode) .ghost-cell.is-matchable {
+    color: #facc15 !important;
+    border-color: #facc15 !important;
+}
+
+/* --- Ячейки игры --- */
 
 .cell {
     aspect-ratio: 1;
@@ -194,9 +306,7 @@
 
 .controls {
     position: relative;
-    /* Убираем fixed */
     flex: 0 0 auto;
-    /* Не сжиматься */
     bottom: 0;
     left: 0;
     width: 100%;
@@ -226,11 +336,6 @@
 
 .btn-danger:hover {
     background-color: #dc2626;
-}
-
-.spacer {
-    display: none;
-    /* Больше не нужен */
 }
 
 .win-message {
@@ -281,12 +386,15 @@
 }
 
 @media (min-width: 768px) {
-    .grid {
+
+    .grid,
+    .ghost-row {
         gap: 8px;
         max-width: 600px;
     }
 
-    .cell {
+    .cell,
+    .ghost-cell {
         font-size: 1.5rem;
         border-radius: 12px;
     }
