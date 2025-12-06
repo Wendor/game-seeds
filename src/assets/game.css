@@ -75,8 +75,10 @@ body.dark-mode .timer.finished {
     width: 100%;
     box-sizing: border-box;
     overflow-y: auto;
-    content-visibility: auto;
+    overflow-x: hidden;
     position: relative;
+    -webkit-overflow-scrolling: touch;
+    content-visibility: auto;
 }
 
 .grid,
