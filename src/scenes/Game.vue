@@ -34,7 +34,7 @@
         </div>
       </div>
 
-      <div class="grid" ref="gridRef" v-auto-animate>
+      <TransitionGroup name="list" tag="div" class="grid" ref="gridRef">
         <div 
           v-for="(cell, index) in cells" :key="cell.id"
           class="cell"
@@ -44,7 +44,7 @@
         >
           {{ cell.value }}
         </div>
-      </div>
+      </TransitionGroup>
       
       <div class="ghost-row sticky-bottom" ref="bottomGhostRef" :class="{ visible: hasBottomGhosts }">
         <div 
@@ -167,11 +167,12 @@ const getCellIndexAtPoint = (x: number, y: number): number | null => {
 };
 
 const updateGhosts = () => {
-    if (!gridContainerRef.value || !gridRef.value || !topGhostRef.value || !bottomGhostRef.value || cells.value.length === 0) return;
+    const gridEl = (gridRef.value as any)?.$el || gridRef.value
+    if (!gridContainerRef.value || !gridEl || !topGhostRef.value || !bottomGhostRef.value || cells.value.length === 0) return;
 
     const topPanelRect = topGhostRef.value.getBoundingClientRect();
     const bottomPanelRect = bottomGhostRef.value.getBoundingClientRect();
-    const gridRect = gridRef.value.getBoundingClientRect();
+    const gridRect = gridEl.getBoundingClientRect();
 
     if (gridRect.top >= topPanelRect.bottom - 10 && gridRect.bottom <= bottomPanelRect.top + 10) {
         topGhosts.value.fill(null);
@@ -179,7 +180,7 @@ const updateGhosts = () => {
         return;
     }
 
-    const firstCell = gridRef.value.children[0] as HTMLElement;
+    const firstCell = gridEl.children[0] as HTMLElement;
     const cellWidth = firstCell ? firstCell.offsetWidth : 50;
     const checkX = gridRect.left + (cellWidth / 2);
 
@@ -190,15 +191,15 @@ const updateGhosts = () => {
     for (let col = 0; col < 9; col++) {
         let foundItem: GhostItem = null;
         if (topIndex !== null) {
-        const startIdx = (Math.floor(topIndex / 9) * 9) + col;
-        for (let i = startIdx; i >= 0; i -= 9) {
-            if (i >= cells.value.length) continue; 
-            const cell = cells.value[i];
-            if (cell && cell.status !== 'crossed') {
-            foundItem = { value: cell.value, index: i };
-            break; 
+            const startIdx = (Math.floor(topIndex / 9) * 9) + col;
+            for (let i = startIdx; i >= 0; i -= 9) {
+                if (i >= cells.value.length) continue;
+                const cell = cells.value[i];
+                if (cell && cell.status !== 'crossed') {
+                    foundItem = { value: cell.value, index: i };
+                    break;
+                }
             }
-        }
         }
         topGhosts.value[col] = foundItem;
     }
@@ -210,15 +211,15 @@ const updateGhosts = () => {
     for (let col = 0; col < 9; col++) {
         let foundItem: GhostItem = null;
         if (bottomIndex !== null) {
-        const startIdx = (Math.floor(bottomIndex / 9) * 9) + col;
-        for (let i = startIdx; i < cells.value.length; i += 9) {
-            if (i < 0) continue; 
-            const cell = cells.value[i];
-            if (cell && cell.status !== 'crossed') {
-            foundItem = { value: cell.value, index: i };
-            break;
+            const startIdx = (Math.floor(bottomIndex / 9) * 9) + col;
+            for (let i = startIdx; i < cells.value.length; i += 9) {
+                if (i < 0) continue;
+                const cell = cells.value[i];
+                if (cell && cell.status !== 'crossed') {
+                    foundItem = { value: cell.value, index: i };
+                    break;
+                }
             }
-        }
         }
         bottomGhosts.value[col] = foundItem;
     }
