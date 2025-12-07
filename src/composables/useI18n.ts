@@ -14,7 +14,12 @@ const dictionary = {
             install: 'Установить приложение',
             stats: 'Статистика',
             rules: 'Правила игры',
-            saveInfo: '{mode} • {time}'
+            saveInfo: '{mode} • {time}',
+            // Новые ключи
+            lang: 'Сменить язык',
+            soundOn: 'Включить звук',
+            soundOff: 'Выключить звук',
+            theme: 'Переключить тему'
         },
         game: {
             menu: 'меню',
@@ -38,7 +43,9 @@ const dictionary = {
             clearedMulti: 'Убрано рядов: {n}',
             noMoves: 'Ходов нет! Жми "Добавить"',
             copied: 'Скопировано!',
-            shareText: '🏆 Победа в Семечках!\nЯ прошел в режиме {mode} за {time}!'
+            shareText: '🏆 Победа в Семечках!\nЯ прошел в режиме {mode} за {time}!',
+            // Новый ключ
+            botGiveUp: 'Бот: Слишком много цифр, я сдаюсь.'
         },
         rules: {
             title: 'Как играть?',
@@ -75,7 +82,12 @@ const dictionary = {
             install: 'Install App',
             stats: 'Statistics',
             rules: 'How to play',
-            saveInfo: '{mode} • {time}'
+            saveInfo: '{mode} • {time}',
+            // New keys
+            lang: 'Switch language',
+            soundOn: 'Unmute',
+            soundOff: 'Mute',
+            theme: 'Toggle theme'
         },
         game: {
             menu: 'menu',
@@ -99,7 +111,9 @@ const dictionary = {
             clearedMulti: 'Rows cleared: {n}',
             noMoves: 'No moves! Press "Add Rows"',
             copied: 'Copied!',
-            shareText: '🏆 Victory in Seeds!\nI completed {mode} mode in {time}!'
+            shareText: '🏆 Victory in Seeds!\nI completed {mode} mode in {time}!',
+            // New key
+            botGiveUp: 'Bot: Too many numbers, I give up.'
         },
         rules: {
             title: 'How to play?',

@@ -140,51 +140,6 @@ const handleRestart = () => {
 </script>
 
 <style>
-/* === ГЛОБАЛЬНЫЕ СТИЛИ (PWA FIXES) === */
-
-:root {
-  /* Светлая тема (default) */
-  --bg-main: #ffffff;
-  --bg-secondary: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  --text-main: #1f2937;
-  --text-muted: #64748b;
-  
-  --cell-bg: #f9fafb;
-  --cell-border: #e5e7eb;
-  --cell-text: #111827;
-  
-  --header-bg: rgba(255, 255, 255, 0.95);
-  --border-color: #f3f4f6;
-  
-  --btn-sec-bg: #f3f4f6;
-  --btn-sec-text: #4b5563;
-  --btn-sec-hover: #e5e7eb;
-  
-  --card-bg: #ffffff;
-  --shadow-color: rgba(0,0,0,0.1);
-}
-
-/* Темная тема */
-body.dark-mode {
-  --bg-main: #0f172a;
-  --bg-secondary: #0f172a; 
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
-  
-  --cell-bg: #1e293b;
-  --cell-border: #334155;
-  --cell-text: #e2e8f0;
-  
-  --header-bg: rgba(15, 23, 42, 0.95);
-  --border-color: #1e293b;
-  
-  --btn-sec-bg: #1e293b;
-  --btn-sec-text: #cbd5e1;
-  --btn-sec-hover: #334155;
-  
-  --card-bg: #1e293b;
-  --shadow-color: rgba(0,0,0,0.5);
-}
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -246,20 +201,51 @@ body {
 }
 
 /* UI KIT (Кнопки) */
-.btn { border: none; border-radius: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; font-family: inherit; text-decoration: none; }
+.btn { 
+  border: none; 
+  border-radius: 12px; 
+  font-weight: 600; 
+  cursor: pointer; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  transition: all 0.2s; 
+  font-family: inherit; 
+  text-decoration: none; 
+}
 .btn:active { transform: scale(0.96); }
 .btn-sm { padding: 6px 12px; font-size: 0.9rem; }
 .btn-lg { padding: 14px 24px; font-size: 1.1rem; }
 .btn-xl { padding: 18px 24px; font-size: 1.2rem; width: 100%; }
 .btn-icon { width: 52px; font-size: 1.4rem; padding: 0; flex: 0 0 auto; }
 
-.btn-primary { background-color: #3b82f6; color: white; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); }
-.btn-primary:hover { background-color: #2563eb; }
-.btn-primary:disabled { background-color: #9ca3af; box-shadow: none; opacity: 0.7; }
+/* Primary Button (используем --rgb-blue) */
+.btn-primary { 
+  background-color: rgb(var(--rgb-blue)); 
+  color: rgb(var(--rgb-white)); 
+  box-shadow: 0 4px 6px -1px rgba(var(--rgb-blue), 0.2); 
+}
+.btn-primary:hover { 
+  background-color: rgb(37, 99, 235); /* blue-600 */ 
+}
+.btn-primary:disabled { 
+  background-color: rgb(156, 163, 175); /* gray-400 */
+  box-shadow: none; 
+  opacity: 0.7; 
+}
 
-.btn-secondary { background-color: var(--btn-sec-bg); color: var(--btn-sec-text); border: 1px solid transparent; }
-.btn-secondary:hover { background-color: var(--btn-sec-hover); }
+/* Secondary Button (используем семантические переменные) */
+.btn-secondary { 
+  background-color: var(--btn-sec-bg); 
+  color: var(--btn-sec-text); 
+  border: 1px solid transparent; 
+}
+.btn-secondary:hover { 
+  background-color: var(--btn-sec-hover); 
+}
 .btn-secondary:disabled { opacity: 0.5; }
 
-body.dark-mode .btn-secondary { border-color: #334155; }
+body.dark-mode .btn-secondary { 
+  border-color: rgb(51, 65, 85); /* slate-700 */
+}
 </style>

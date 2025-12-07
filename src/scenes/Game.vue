@@ -3,9 +3,13 @@
     <Toast :show="!!toastMessage" :message="toastMessage || ''" />
     
     <Modal 
-      :show="showRestartModal" :title="t('game.restartTitle')" 
+      :show="showRestartModal" 
+      :title="t('game.restartTitle')" 
       :message="t('game.restartMsg')"
-      @confirm="confirmRestart" @cancel="showRestartModal = false"
+      :confirm-text="t('game.yes')"
+      :cancel-text="t('game.cancel')"
+      @confirm="confirmRestart" 
+      @cancel="showRestartModal = false"
     />
 
     <header class="header">
@@ -428,10 +432,16 @@ const getCellClasses = (cell: Cell, index: number) => {
 const shareResult = async () => {
   const url = window.location.href;
   const modeName = t(`stats.${props.mode}`);
-  const text = `${t('game.shareText', { mode: modeName, time: formattedTime.value })}\n${url}`;
+  const baseText = t('game.shareText', { mode: modeName, time: formattedTime.value });
   
-  if (navigator.share) try { await navigator.share({ title: 'Seeds', text, url }); } catch {}
-  else { await navigator.clipboard.writeText(text); showToast(t('game.copied')); }
+  if (navigator.share) {
+    try { 
+      await navigator.share({ title: 'Seeds', text: baseText, url }); 
+    } catch {}
+  } else {
+    await navigator.clipboard.writeText(`${baseText}\n${url}`); 
+    showToast(t('game.copied'));
+  }
 };
 </script>
 

@@ -1,0 +1,87 @@
+:root {
+    /* === 1. БАЗОВАЯ ПАЛИТРА (RGB примитивы) === */
+    /* Используем эти переменные для создания оттенков */
+
+    /* Основные цвета (Tailwind palette) */
+    --rgb-red: 239, 68, 68;
+    /* Red-500 */
+    --rgb-amber: 245, 158, 11;
+    /* Amber-500 */
+    --rgb-green: 16, 185, 129;
+    /* Emerald-500 */
+    --rgb-violet: 139, 92, 246;
+    /* Violet-500 */
+    --rgb-blue: 59, 130, 246;
+    /* Blue-500 */
+    --rgb-yellow: 234, 179, 8;
+    /* Yellow-500 */
+
+    /* Нейтральные */
+    --rgb-white: 255, 255, 255;
+    --rgb-black: 0, 0, 0;
+    --rgb-slate-500: 100, 116, 139;
+    --rgb-slate-900: 15, 23, 42;
+
+    /* === 2. СЕМАНТИКА (СВЕТЛАЯ ТЕМА) === */
+
+    /* Фон и текст */
+    --bg-main: rgb(var(--rgb-white));
+    --text-main: rgb(31, 41, 55);
+    /* Gray-800 */
+    --text-muted: rgb(var(--rgb-slate-500));
+
+    /* Ячейки */
+    --cell-bg: rgb(249, 250, 251);
+    /* Gray-50 */
+    --cell-border: rgb(229, 231, 235);
+    /* Gray-200 */
+    --cell-text: rgb(17, 24, 39);
+    /* Gray-900 */
+
+    /* UI Элементы */
+    --header-bg: rgba(255, 255, 255, 0.95);
+    --border-color: rgb(243, 244, 246);
+    /* Gray-100 */
+    --card-bg: rgb(var(--rgb-white));
+    --shadow-color: rgba(0, 0, 0, 0.1);
+
+    /* Кнопки (второстепенные) */
+    --btn-sec-bg: rgb(243, 244, 246);
+    --btn-sec-text: rgb(75, 85, 99);
+    --btn-sec-hover: rgb(229, 231, 235);
+
+    /* Призраки */
+    --ghost-text-color: rgba(0, 0, 0, 0.4);
+}
+
+/* === 3. ТЕМНАЯ ТЕМА === */
+body.dark-mode {
+    /* Фон и текст */
+    --bg-main: rgb(var(--rgb-slate-900));
+    --text-main: rgb(241, 245, 249);
+    /* Slate-100 */
+    --text-muted: rgb(148, 163, 184);
+    /* Slate-400 */
+
+    /* Ячейки */
+    --cell-bg: rgb(30, 41, 59);
+    /* Slate-800 */
+    --cell-border: rgb(51, 65, 85);
+    /* Slate-700 */
+    --cell-text: rgb(226, 232, 240);
+    /* Slate-200 */
+
+    /* UI Элементы */
+    --header-bg: rgba(15, 23, 42, 0.95);
+    --border-color: rgb(30, 41, 59);
+    --card-bg: rgb(30, 41, 59);
+    --shadow-color: rgba(0, 0, 0, 0.5);
+
+    /* Кнопки */
+    --btn-sec-bg: rgb(30, 41, 59);
+    --btn-sec-text: rgb(203, 213, 225);
+    --btn-sec-hover: rgb(51, 65, 85);
+
+    /* Призраки */
+    --ghost-text-color: rgba(255, 255, 255, 0.6);
+}

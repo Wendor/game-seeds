@@ -1,14 +1,14 @@
 <template>
   <section class="screen-menu">
     <div class="settings-group">
-      <button class="icon-btn" @click="toggleLanguage" title="Switch Language">
+      <button class="icon-btn" @click="toggleLanguage" :title="t('menu.lang')">
         {{ currentLang === 'ru' ? 'EN' : 'RU' }}
       </button>
-      <button class="icon-btn" @click="toggleSound" :title="isMuted ? 'Включить звук' : 'Выключить звук'">
+      <button class="icon-btn" @click="toggleSound" :title="isMuted ? t('menu.soundOn') : t('menu.soundOff')">
         <svg v-if="!isMuted" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
         <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
       </button>
-      <button class="icon-btn" @click="$emit('toggle-theme')" title="Переключить тему">
+      <button class="icon-btn" @click="$emit('toggle-theme')" :title="t('menu.theme')">
         <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
       </button>
@@ -145,7 +145,7 @@ onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handle
   border-radius: 50%;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px var(--shadow-color);
   transition: all 0.2s;
   color: var(--text-main);
   padding: 0;
@@ -153,34 +153,49 @@ onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handle
 .icon-btn:hover { transform: scale(1.1); }
 
 .menu-content { text-align: center; max-width: 400px; width: 100%; }
-.game-title { font-size: 3rem; font-weight: 800; color: #3b82f6; margin: 0; letter-spacing: -1px; }
-.game-subtitle { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 40px; }
+
+.game-title { 
+  font-size: 3rem; 
+  font-weight: 800; 
+  color: rgb(var(--rgb-blue));
+  margin: 0; 
+  letter-spacing: -1px; 
+}
+
+.game-subtitle { 
+  font-size: 1.1rem; 
+  color: var(--text-muted); 
+  margin-bottom: 40px; 
+}
+
 .menu-buttons { display: flex; flex-direction: column; gap: 16px; }
 
-.install-btn { background: linear-gradient(90deg, #3b82f6, #2563eb); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
+.install-btn { 
+  background: rgb(var(--rgb-blue));
+  box-shadow: 0 4px 15px rgba(var(--rgb-blue), 0.3); 
+}
 
-/* Стиль для кнопки Продолжить */
 .btn-success {
-  background-color: #10b981; color: white;
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+  background-color: rgb(var(--rgb-green)); 
+  color: white;
+  box-shadow: 0 4px 10px rgba(var(--rgb-green), 0.3);
   display: flex; flex-direction: column; align-items: center; line-height: 1.2;
 }
-.btn-success:hover { background-color: #059669; }
+.btn-success:hover { filter: brightness(0.9); }
 
 .btn-row {
   display: flex; align-items: center; gap: 8px;
 }
 
-/* Кнопка Лайт */
 .btn-easy {
-  background-color: #f59e0b; color: white;
-  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
+  background-color: rgb(var(--rgb-amber)); 
+  color: white;
+  box-shadow: 0 4px 10px rgba(var(--rgb-amber), 0.3);
 }
-.btn-easy:hover { background-color: #d97706; }
+.btn-easy:hover { filter: brightness(0.9); }
 
 .save-info { font-size: 0.85rem; opacity: 0.9; font-weight: 400; margin-top: 2px; }
 
-/* Иконки внутри кнопок */
 .btn-icon-svg {
   margin-right: 8px;
   margin-left: -4px; 

@@ -1,3 +1,30 @@
+/* === ЛОГИКА ЦВЕТОВЫХ ГРУПП === */
+/* Определяем цвет группы один раз для всех типов ячеек */
+.cell-group-1,
+.ghost-cell.cell-group-1 {
+    --group-color: var(--rgb-red);
+}
+
+.cell-group-2,
+.ghost-cell.cell-group-2 {
+    --group-color: var(--rgb-amber);
+}
+
+.cell-group-3,
+.ghost-cell.cell-group-3 {
+    --group-color: var(--rgb-green);
+}
+
+.cell-group-4,
+.ghost-cell.cell-group-4 {
+    --group-color: var(--rgb-violet);
+}
+
+.cell-group-5,
+.ghost-cell.cell-group-5 {
+    --group-color: var(--rgb-blue);
+}
+
 .screen-game {
     display: flex;
     flex-direction: column;
@@ -30,48 +57,44 @@
     font-size: 1.1rem;
 }
 
+/* Таймер */
 .timer {
     font-family: monospace;
     font-size: 1.2rem;
     font-weight: 700;
-    color: #3b82f6;
-    background: #eff6ff;
+    /* Используем базовый синий */
+    color: rgb(var(--rgb-blue));
+    background: rgba(var(--rgb-blue), 0.1);
     padding: 4px 12px;
     border-radius: 20px;
+    border: 1px solid transparent;
 }
 
 .timer.finished {
-    color: #10b981;
-    background: #ecfdf5;
+    color: rgb(var(--rgb-green));
+    background: rgba(var(--rgb-green), 0.1);
 }
 
 body.dark-mode .timer {
-    background: rgba(59, 130, 246, 0.15);
-    /* Прозрачный синий */
+    background: rgba(var(--rgb-blue), 0.15);
     color: #60a5fa;
-    /* Светло-синий текст */
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    /* Тонкая рамка */
+    /* Можно тоже вынести в переменную, но для одного раза ок */
+    border-color: rgba(var(--rgb-blue), 0.3);
 }
 
 body.dark-mode .timer.finished {
-    background: rgba(16, 185, 129, 0.15);
-    /* Прозрачный зеленый */
+    background: rgba(var(--rgb-green), 0.15);
     color: #34d399;
-    /* Светло-зеленый текст */
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-color: rgba(var(--rgb-green), 0.3);
 }
 
-/* --- КОНТЕЙНЕР И СЕТКА --- */
-
+/* СЕТКА */
 .grid-container {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 15px;
-    padding-top: 0;
-    padding-bottom: 0;
+    padding: 0 15px;
     width: 100%;
     box-sizing: border-box;
     overflow-y: auto;
@@ -91,28 +114,15 @@ body.dark-mode .timer.finished {
     margin: 4px 0;
 }
 
-.grid {
-    grid-template-columns: repeat(9, minmax(0, 1fr));
-    position: relative;
-}
-
-/* --- Призрачные строки (Хелперы) --- */
-
+/* ПРИЗРАКИ (ХЕЛПЕРЫ) */
 .ghost-row {
     position: sticky;
     z-index: 25;
-
-    /* Плотный фон, чтобы перекрыть прокручиваемые цифры */
-    /* Используем цвет фона страницы, чтобы они сливались */
     background: var(--bg-main);
-
-    /* Добавляем легкую тень и границу, чтобы отделить панель от поля */
-    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.1);
-
+    box-shadow: 0 4px 20px -5px var(--shadow-color);
     pointer-events: auto;
     transition: opacity 0.2s ease;
     opacity: 0;
-
     display: grid;
     align-items: center;
 }
@@ -124,7 +134,6 @@ body.dark-mode .timer.finished {
 .ghost-row.sticky-top {
     top: 0;
     padding: 4px 0;
-    margin-bottom: 0;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -132,12 +141,11 @@ body.dark-mode .timer.finished {
     position: sticky;
     bottom: 0;
     padding: 4px 0;
-    margin-top: 0;
     border-top: 1px solid var(--border-color);
     z-index: 26;
 }
 
-/* СТИЛИ ЯЧЕЙКИ-ПРИЗРАКА */
+/* СТИЛИ ПРИЗРАКА */
 .ghost-cell {
     aspect-ratio: 1;
     display: flex;
@@ -146,133 +154,32 @@ body.dark-mode .timer.finished {
     font-size: 1.3rem;
     font-weight: 800;
     border-radius: 8px;
-
-    /* Сброс масштаба */
-    transform: none;
-
-    /* !important нужен, чтобы перебить стили обычной .cell */
-    background-color: transparent !important;
-    color: #53ca7f80 !important;
-    /* Зеленый текст (Green-600) */
-    border: 2px dashed #4ade8080 !important;
-    /* Зеленая рамка (Green-400) */
-
-    opacity: 1;
-    transition: all 0.1s;
     cursor: pointer;
-}
 
-/* Темная тема для призраков */
-body.dark-mode .ghost-cell {
-    color: #4ade8080 !important;
-    /* Светло-зеленый текст */
-    border-color: #15803d80 !important;
-    /* Темно-зеленая рамка */
-}
-
-.ghost-cell:active {
-    transform: scale(0.95);
-    background-color: rgba(74, 222, 128, 0.1) !important;
+    /* Дефолт (без группы) - зеленый (или можно сделать серым) */
+    color: var(--ghost-text-color) !important;
+    background-color: transparent !important;
+    border: 2px dashed rgba(var(--rgb-green), 0.5) !important;
+    /* Дефолтная рамка */
 }
 
 .ghost-cell.empty {
-    background: transparent !important;
-    border: transparent !important;
+    border-color: transparent !important;
     color: transparent !important;
     cursor: default;
 }
 
-/* Соседи в призраках */
-.ghost-cell.is-neighbor {
-    border-color: #3b82f6 !important;
-    color: #2563eb !important;
-    background-color: rgba(59, 130, 246, 0.1) !important;
-    animation: pulse-border-blue 1.5s infinite;
+/* Призрак с ГРУППОЙ (красит только рамку) */
+.ghost-cell[class*="cell-group-"] {
+    border-color: rgba(var(--group-color), 0.5) !important;
 }
 
-body.dark-mode .ghost-cell.is-neighbor {
-    color: #60a5fa !important;
-    border-color: #60a5fa !important;
-    background-color: rgba(59, 130, 246, 0.2) !important;
+/* В темной теме рамку чуть ярче */
+body.dark-mode .ghost-cell[class*="cell-group-"] {
+    border-color: rgba(var(--group-color), 0.6) !important;
 }
 
-.ghost-cell.is-matchable {
-    border-color: #eab308 !important;
-    color: #ca8a04 !important;
-    background-color: rgba(253, 224, 71, 0.2) !important;
-    animation: pulse-border-yellow 1.5s infinite;
-}
-
-body.dark-mode .ghost-cell.is-matchable {
-    color: #facc15 !important;
-    border-color: #facc15 !important;
-}
-
-/* --- Цвета призрачных ячеек --- */
-/* 1. БАЗОВЫЙ ЦВЕТ ТЕКСТА (очень бледный) */
-/* Используем !important, чтобы гарантированно убрать зеленый цвет */
-
-.ghost-cell {
-    /* Светлая тема: черный цвет с прозрачностью 20% (еле виден) */
-    color: rgba(0, 0, 0, 0.4) !important;
-    background-color: transparent !important;
-}
-
-body.dark-mode .ghost-cell {
-    /* Темная тема: белый цвет с прозрачностью 20% */
-    color: rgba(255, 255, 255, 0.6) !important;
-}
-
-/* 2. ЦВЕТНЫЕ РАМКИ ПО ГРУППАМ */
-
-/* Группа 1 (1-9): Красная */
-.ghost-cell.cell-group-1 {
-    border-color: rgba(239, 68, 68, 0.5) !important;
-}
-
-/* Группа 2 (2-8): Янтарная */
-.ghost-cell.cell-group-2 {
-    border-color: rgba(245, 158, 11, 0.6) !important;
-}
-
-/* Группа 3 (3-7): Зеленая */
-.ghost-cell.cell-group-3 {
-    border-color: rgba(16, 185, 129, 0.5) !important;
-}
-
-/* Группа 4 (4-6): Фиолетовая */
-.ghost-cell.cell-group-4 {
-    border-color: rgba(139, 92, 246, 0.5) !important;
-}
-
-/* Группа 5 (5): Синяя */
-.ghost-cell.cell-group-5 {
-    border-color: rgba(59, 130, 246, 0.5) !important;
-}
-
-/* --- Яркость рамок для ТЕМНОЙ ТЕМЫ --- */
-body.dark-mode .ghost-cell.cell-group-1 {
-    border-color: rgba(248, 113, 113, 0.6) !important;
-}
-
-body.dark-mode .ghost-cell.cell-group-2 {
-    border-color: rgba(251, 191, 36, 0.6) !important;
-}
-
-body.dark-mode .ghost-cell.cell-group-3 {
-    border-color: rgba(52, 211, 153, 0.6) !important;
-}
-
-body.dark-mode .ghost-cell.cell-group-4 {
-    border-color: rgba(167, 139, 250, 0.6) !important;
-}
-
-body.dark-mode .ghost-cell.cell-group-5 {
-    border-color: rgba(96, 165, 250, 0.6) !important;
-}
-
-/* --- Ячейки игры --- */
-
+/* ЯЧЕЙКИ ИГРЫ */
 .cell {
     aspect-ratio: 1;
     display: flex;
@@ -287,14 +194,98 @@ body.dark-mode .ghost-cell.cell-group-5 {
     cursor: pointer;
     user-select: none;
     touch-action: manipulation;
-    transition:
-        background-color 0.15s ease-out,
-        color 0.15s ease-out,
-        transform 0.15s ease-out,
-        box-shadow 0.15s ease-out,
-        opacity 0.15s ease-out;
+
+    /* Исключаем border из анимации, чтобы не дрожал */
+    transition: background-color 0.15s ease-out, color 0.15s ease-out, transform 0.15s ease-out, box-shadow 0.15s ease-out, opacity 0.15s ease-out;
 }
 
+/* Ячейка с ГРУППОЙ (красит фон) */
+.cell[class*="cell-group-"] {
+    background-color: rgba(var(--group-color), 0.08);
+    border-color: rgba(var(--group-color), 0.2);
+}
+
+body.dark-mode .cell[class*="cell-group-"] {
+    background-color: rgba(var(--group-color), 0.1);
+    border-color: rgba(var(--group-color), 0.3);
+}
+
+/* СПЕЦ. СОСТОЯНИЯ (Перебивают группы через !important) */
+
+/* Выбрана */
+.cell.selected {
+    background-color: rgb(var(--rgb-blue)) !important;
+    color: rgb(var(--rgb-white)) !important;
+    border-color: rgb(var(--rgb-blue)) !important;
+    transform: scale(0.95);
+    box-shadow: 0 0 0 2px rgba(var(--rgb-blue), 0.3);
+    z-index: 2;
+}
+
+/* Зачеркнута */
+.cell.crossed {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    color: var(--text-muted) !important;
+    text-decoration: line-through;
+    cursor: default;
+    opacity: 0.15 !important;
+}
+
+/* Подсказка */
+.cell.hint {
+    background-color: rgb(253, 224, 71) !important;
+    /* Yellow-300 */
+    color: rgb(133, 77, 14) !important;
+    /* Yellow-900 */
+    border-color: rgb(var(--rgb-yellow)) !important;
+    animation: pulse 1s infinite;
+    z-index: 3;
+}
+
+/* Сосед (для Cell и Ghost) */
+.cell.neighbor,
+.ghost-cell.is-neighbor {
+    --highlight-color: var(--rgb-blue);
+    border-color: rgb(var(--highlight-color)) !important;
+    background-color: rgba(var(--highlight-color), 0.15) !important;
+    color: rgb(var(--highlight-color)) !important;
+    /* Для призрака */
+    border-style: dashed !important;
+    animation: pulse-border-blue 1.5s infinite;
+    opacity: 1 !important;
+}
+
+/* Сосед-пара (для Cell и Ghost) */
+.cell.neighbor-match,
+.ghost-cell.is-matchable {
+    --highlight-color: var(--rgb-yellow);
+    border-color: rgb(var(--highlight-color)) !important;
+    background-color: rgba(253, 224, 71, 0.25) !important;
+    color: rgb(202, 138, 4) !important;
+    /* Yellow-700 */
+    border-style: dashed !important;
+    animation: pulse-border-yellow 1.5s infinite;
+    opacity: 1 !important;
+    z-index: 1;
+}
+
+/* Адаптация выделений для темной темы */
+body.dark-mode .cell.neighbor,
+body.dark-mode .ghost-cell.is-neighbor {
+    color: rgb(96, 165, 250) !important;
+    /* Blue-400 */
+    border-color: rgb(96, 165, 250) !important;
+}
+
+body.dark-mode .cell.neighbor-match,
+body.dark-mode .ghost-cell.is-matchable {
+    color: rgb(250, 204, 21) !important;
+    /* Yellow-400 */
+    border-color: rgb(250, 204, 21) !important;
+}
+
+/* АНИМАЦИИ (без изменений, кроме использования переменных) */
 .list-enter-active {
     animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 10;
@@ -324,56 +315,6 @@ body.dark-mode .ghost-cell.cell-group-5 {
     }
 }
 
-.cell.selected {
-    background-color: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
-    transform: scale(0.95);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-    z-index: 2;
-}
-
-.cell.crossed {
-    background-color: transparent;
-    color: var(--text-muted);
-    opacity: 0.2;
-    border-color: transparent;
-    text-decoration: line-through;
-    cursor: default;
-    opacity: 0.2 !important;
-}
-
-.cell.hint {
-    background-color: #fde047;
-    color: #854d0e;
-    border-color: #eab308;
-    animation: pulse 1s infinite;
-    z-index: 3;
-}
-
-.cell.neighbor {
-    border: 2px dashed rgba(59, 130, 246, 0.5);
-    background-color: rgba(59, 130, 246, 0.05);
-    animation: pulse-border-blue 1.5s infinite;
-}
-
-.cell.neighbor-match {
-    border: 2px dashed #eab308;
-    background-color: rgba(253, 224, 71, 0.15);
-    animation: pulse-border-yellow 1.5s infinite;
-    z-index: 1;
-}
-
-body.dark-mode .cell.neighbor {
-    background-color: rgba(59, 130, 246, 0.15);
-    border-color: rgba(147, 197, 253, 0.4);
-}
-
-body.dark-mode .cell.neighbor-match {
-    background-color: rgba(234, 179, 8, 0.15);
-    border-color: rgba(250, 204, 21, 0.5);
-}
-
 @keyframes pulse {
     0% {
         transform: scale(1);
@@ -390,32 +331,33 @@ body.dark-mode .cell.neighbor-match {
 
 @keyframes pulse-border-blue {
     0% {
-        border-color: rgba(59, 130, 246, 0.3);
+        border-color: rgba(var(--rgb-blue), 0.3);
     }
 
     50% {
-        border-color: rgba(59, 130, 246, 0.7);
+        border-color: rgba(var(--rgb-blue), 0.7);
     }
 
     100% {
-        border-color: rgba(59, 130, 246, 0.3);
+        border-color: rgba(var(--rgb-blue), 0.3);
     }
 }
 
 @keyframes pulse-border-yellow {
     0% {
-        border-color: rgba(234, 179, 8, 0.3);
+        border-color: rgba(var(--rgb-yellow), 0.3);
     }
 
     50% {
-        border-color: rgba(234, 179, 8, 0.9);
+        border-color: rgba(var(--rgb-yellow), 0.9);
     }
 
     100% {
-        border-color: rgba(234, 179, 8, 0.3);
+        border-color: rgba(var(--rgb-yellow), 0.3);
     }
 }
 
+/* ПРОЧЕЕ (Controls, Win Message) */
 .controls {
     position: relative;
     flex: 0 0 auto;
@@ -429,7 +371,6 @@ body.dark-mode .cell.neighbor-match {
     display: flex;
     justify-content: center;
     gap: 12px;
-    box-sizing: border-box;
 }
 
 .icon-text {
@@ -439,7 +380,7 @@ body.dark-mode .cell.neighbor-match {
 }
 
 .btn-danger {
-    background-color: #ef4444;
+    background-color: rgb(239, 68, 68);
     color: white;
     box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
     font-size: 1.5rem;
@@ -447,16 +388,16 @@ body.dark-mode .cell.neighbor-match {
 }
 
 .btn-danger:hover {
-    background-color: #dc2626;
+    background-color: rgb(220, 38, 38);
 }
 
 .win-message {
     margin: 30px 0;
     font-size: 2rem;
-    color: #10b981;
+    color: rgb(16, 185, 129);
     font-weight: 800;
     text-align: center;
-    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: popIn 0.5s;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -470,13 +411,13 @@ body.dark-mode .cell.neighbor-match {
 }
 
 .btn-success {
-    background-color: #10b981;
+    background-color: rgb(16, 185, 129);
     color: white;
     box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
 }
 
 .btn-success:hover {
-    background-color: #059669;
+    background-color: rgb(5, 150, 105);
 }
 
 @keyframes popIn {
@@ -511,9 +452,11 @@ body.dark-mode .cell.neighbor-match {
         border-radius: 12px;
     }
 
+    /* Hover эффект, исключая спец. состояния */
     .cell:hover:not(.crossed):not(.selected):not(.hint):not(.neighbor):not(.neighbor-match) {
-        background-color: var(--btn-sec-bg);
-        border-color: #3b82f6;
+        background-color: var(--btn-sec-hover);
+        /* Или свой оттенок */
+        border-color: rgb(var(--rgb-blue));
         transform: translateY(-1px);
     }
 
@@ -534,137 +477,4 @@ body.dark-mode .cell.neighbor-match {
 
 .back-arrow {
     font-size: 1.1em;
-}
-
-
-/* --- Цветовая градация по группам (сумма 10) --- */
-
-/* Группа 1 (числа 1 и 9) - Красный оттенок */
-.cell-group-1 {
-    background-color: rgba(239, 68, 68, 0.08);
-    /* red-500 */
-    border-color: rgba(239, 68, 68, 0.2);
-}
-
-/* Группа 2 (числа 2 и 8) - Оранжевый/Янтарный */
-.cell-group-2 {
-    background-color: rgba(245, 158, 11, 0.08);
-    /* amber-500 */
-    border-color: rgba(245, 158, 11, 0.2);
-}
-
-/* Группа 3 (числа 3 и 7) - Зеленый/Изумрудный */
-.cell-group-3 {
-    background-color: rgba(16, 185, 129, 0.08);
-    /* emerald-500 */
-    border-color: rgba(16, 185, 129, 0.2);
-}
-
-/* Группа 4 (числа 4 и 6) - Фиолетовый */
-.cell-group-4 {
-    background-color: rgba(139, 92, 246, 0.08);
-    /* violet-500 */
-    border-color: rgba(139, 92, 246, 0.2);
-}
-
-/* Группа 5 (число 5) - Синий (близкий к дефолтному, но чуть отличный) */
-.cell-group-5 {
-    background-color: rgba(59, 130, 246, 0.05);
-    /* blue-500 */
-    border-color: rgba(59, 130, 246, 0.15);
-}
-
-/* --- Адаптация для ТЕМНОЙ ТЕМЫ --- */
-/* Делаем цвета чуть насыщеннее, так как фон темный */
-body.dark-mode .cell-group-1 {
-    background-color: rgba(239, 68, 68, 0.10);
-    border-color: rgba(239, 68, 68, 0.3);
-}
-
-body.dark-mode .cell-group-2 {
-    background-color: rgba(245, 158, 11, 0.10);
-    border-color: rgba(245, 158, 11, 0.3);
-}
-
-body.dark-mode .cell-group-3 {
-    background-color: rgba(16, 185, 129, 0.10);
-    border-color: rgba(16, 185, 129, 0.3);
-}
-
-body.dark-mode .cell-group-4 {
-    background-color: rgba(139, 92, 246, 0.10);
-    border-color: rgba(139, 92, 246, 0.3);
-}
-
-body.dark-mode .cell-group-5 {
-    background-color: rgba(59, 130, 246, 0.10);
-    border-color: rgba(59, 130, 246, 0.3);
-}
-
-/* --- ПРИОРИТЕТЫ ВЫДЕЛЕНИЯ --- */
-/* Важно: эти состояния должны перебивать базовый цвет группы */
-
-/* Выбранная ячейка - становится ярко синей */
-.cell.selected {
-    background-color: #3b82f6 !important;
-    border-color: #3b82f6 !important;
-    color: white !important;
-}
-
-/* Подсказка - становится желтой */
-.cell.hint {
-    background-color: #fde047 !important;
-    border-color: #eab308 !important;
-    color: #854d0e !important;
-}
-
-/* Сосед - перебиваем фон группы на легкий синий */
-.cell.neighbor {
-    background-color: rgba(59, 130, 246, 0.15) !important;
-    border-color: rgba(59, 130, 246, 0.6) !important;
-}
-
-/* Сосед, с которым можно совпасть */
-.cell.neighbor-match {
-    background-color: rgba(253, 224, 71, 0.25) !important;
-    border-color: #eab308 !important;
-}
-
-/* Зачеркнутая ячейка - убираем цвет */
-.cell.crossed {
-    background-color: transparent !important;
-    border-color: transparent !important;
-    opacity: 0.15 !important;
-    /* Делаем чуть прозрачнее, чем было */
-}
-
-.ghost-cell.is-neighbor {
-    /* Возвращаем синий цвет и фон, перебивая бледные цвета групп */
-    border-color: #3b82f6 !important;
-    color: #2563eb !important;
-    background-color: rgba(59, 130, 246, 0.15) !important;
-    animation: pulse-border-blue 1.5s infinite;
-    opacity: 1 !important;
-}
-
-.ghost-cell.is-matchable {
-    /* Возвращаем желтый цвет для совпадающей пары */
-    border-color: #eab308 !important;
-    color: #ca8a04 !important;
-    background-color: rgba(253, 224, 71, 0.25) !important;
-    animation: pulse-border-yellow 1.5s infinite;
-    opacity: 1 !important;
-}
-
-/* Адаптация этих состояний для темной темы */
-body.dark-mode .ghost-cell.is-neighbor {
-    color: #60a5fa !important;
-    border-color: #60a5fa !important;
-    background-color: rgba(59, 130, 246, 0.25) !important;
-}
-
-body.dark-mode .ghost-cell.is-matchable {
-    color: #facc15 !important;
-    border-color: #facc15 !important;
-    background-color: rgba(234, 179, 8, 0.25) !important;
 }

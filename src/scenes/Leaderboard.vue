@@ -106,7 +106,6 @@ const currentStats = computed(() => {
   const modeRecords = allRecords.value.filter(r => r.mode === mode);
   const won = modeRecords.length;
   
-  // Винрейт с защитой от > 100%
   const winRate = Math.min(100, started > 0 ? Math.round((won / started) * 100) : 0);
   
   let bestTime = '—';
@@ -149,10 +148,9 @@ h2 {
   text-align: center; margin-top: 0; color: var(--text-main);
   display: flex; align-items: center; justify-content: center; gap: 10px;
 }
-.title-icon { color: #3b82f6; }
+.title-icon { color: rgb(var(--rgb-blue)); }
 
-/* === ТАБЫ И КНОПКИ === */
-
+/* === ТАБЫ === */
 .tabs {
   display: flex; 
   background: var(--btn-sec-bg); 
@@ -172,24 +170,20 @@ h2 {
 .tab-icon { opacity: 0.7; }
 .tab-btn.active .tab-icon { opacity: 1; }
 
-/* Активная кнопка в светлой теме */
+/* Активная кнопка */
 .tab-btn.active { 
   background: var(--card-bg); 
-  color: #3b82f6; 
+  color: rgb(var(--rgb-blue)); 
   box-shadow: 0 2px 4px var(--shadow-color); 
 }
 
-/* === ИСПРАВЛЕНИЯ ДЛЯ ТЕМНОЙ ТЕМЫ === */
-
-/* Контейнер табов в темной теме делаем ТЕМНЕЕ (вдавленным), чтобы кнопки выделялись */
 body.dark-mode .tabs {
-  background-color: rgba(0, 0, 0, 0.3); /* Полупрозрачный черный */
-  border: 1px solid rgba(255, 255, 255, 0.05); /* Еле заметная рамка */
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Активная кнопка в темной теме - делаем её СВЕТЛЕЕ контейнера (выпуклой) */
 body.dark-mode .tab-btn.active {
-  background-color: #334155; /* Slate 700 - светлее фона карточки */
+  background-color: rgb(51, 65, 85); /* Slate-700 */
   color: #60a5fa; /* Светло-синий */
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
@@ -197,8 +191,6 @@ body.dark-mode .tab-btn.active {
 body.dark-mode .tab-btn:not(.active):hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
-
-/* === КОНЕЦ ИСПРАВЛЕНИЙ === */
 
 .stats-grid {
   display: grid;
@@ -218,7 +210,7 @@ body.dark-mode .tab-btn:not(.active):hover {
 }
 
 body.dark-mode .stat-box {
-  background-color: rgba(0, 0, 0, 0.2); /* Чуть темнее для боксов статистики */
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 .stat-value {
@@ -227,7 +219,7 @@ body.dark-mode .stat-box {
   color: var(--text-main);
   line-height: 1.2;
 }
-.stat-value.text-green { color: #10b981; }
+.stat-value.text-green { color: rgb(var(--rgb-green)); }
 
 .stat-label {
   font-size: 0.8rem;
@@ -242,7 +234,6 @@ body.dark-mode .stat-box {
 }
 
 .records-list { flex: 1; overflow-y: auto; margin-bottom: 20px; min-height: 150px; }
-
 .empty-state { text-align: center; color: var(--text-muted); margin-top: 30px; }
 
 .record-item {
@@ -252,11 +243,12 @@ body.dark-mode .stat-box {
 .record-item:last-child { border-bottom: none; }
 
 .rank {
-  font-size: 1.1rem; font-weight: 800; color: #cbd5e1; width: 36px;
+  font-size: 1.1rem; font-weight: 800; width: 36px;
+  color: rgb(203, 213, 225); /* default slate-300 */
 }
-.record-item:nth-child(1) .rank { color: #eab308; }
-.record-item:nth-child(2) .rank { color: #94a3b8; }
-.record-item:nth-child(3) .rank { color: #b45309; }
+.record-item:nth-child(1) .rank { color: rgb(var(--rgb-yellow)); } /* Gold */
+.record-item:nth-child(2) .rank { color: rgb(148, 163, 184); } /* Silver (Slate-400) */
+.record-item:nth-child(3) .rank { color: #b45309; } /* Bronze (оставим hex или добавим var) */
 
 .info { display: flex; flex: 1; justify-content: space-between; align-items: baseline; }
 .time { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }

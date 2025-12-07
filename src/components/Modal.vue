@@ -7,10 +7,10 @@
         
         <div class="modal-actions">
           <button @click="$emit('cancel')" class="btn btn-secondary btn-md">
-            Отмена
+            {{ cancelText }}
           </button>
           <button @click="$emit('confirm')" class="btn btn-primary btn-md">
-            Да, начать
+            {{ confirmText }}
           </button>
         </div>
       </div>
@@ -23,6 +23,8 @@ defineProps<{
   show: boolean;
   title: string;
   message: string;
+  confirmText: string;
+  cancelText: string;
 }>();
 
 defineEmits(['confirm', 'cancel']);
@@ -45,7 +47,7 @@ defineEmits(['confirm', 'cancel']);
 }
 
 .modal-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 20px;
   padding: 24px;
   width: 100%;
@@ -57,12 +59,12 @@ defineEmits(['confirm', 'cancel']);
 .modal-title {
   margin: 0 0 8px 0;
   font-size: 1.25rem;
-  color: #1f293b;
+  color: var(--text-main);
 }
 
 .modal-text {
   margin: 0 0 24px 0;
-  color: #64748b;
+  color: var(--text-muted);
   line-height: 1.5;
 }
 
@@ -78,7 +80,6 @@ defineEmits(['confirm', 'cancel']);
   border-radius: 12px;
 }
 
-/* Анимация модалки */
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.2s ease;
