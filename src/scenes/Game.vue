@@ -389,19 +389,39 @@ onUnmounted(() => {
   if (!isGameOver.value) save(props.mode);
 });
 
-const getCellClasses = (cell: Cell, index: number) => {
-  if (isBotActive.value) {
-    return { 'crossed': cell.status === 'crossed', 'active': cell.status === 'active' };
-  }
-  const isNeighbor = neighborIndices.value.includes(index);
-  const isMatchable = isNeighbor && selectedIndex.value !== null && canMatch(selectedIndex.value, index);
+const getGroupClass = (val: number) => {
+  if (val === 1 || val === 9) return 'cell-group-1';
+  if (val === 2 || val === 8) return 'cell-group-2';
+  if (val === 3 || val === 7) return 'cell-group-3';
+  if (val === 4 || val === 6) return 'cell-group-4';
+  if (val === 5) return 'cell-group-5';
+  return '';
+};
 
-  return {
+const getCellClasses = (cell: Cell, index: number) => {
+  const classes: Record<string, boolean> = {
     'crossed': cell.status === 'crossed',
     'selected': cell.status === 'selected',
     'active': cell.status === 'active',
+  };
+
+  if (cell.status !== 'crossed') {
+    const groupClass = getGroupClass(cell.value);
+    if (groupClass) classes[groupClass] = true;
+  }
+
+  // Если работает бот, нам не нужны остальные визуальные эффекты игрока
+  if (isBotActive.value) {
+    return classes;
+  }
+
+  const isNeighborIndex = neighborIndices.value.includes(index);
+  const isMatchable = isNeighborIndex && selectedIndex.value !== null && canMatch(selectedIndex.value, index);
+
+  return {
+    ...classes,
     'hint': hintIndices.value.includes(index),
-    'neighbor': isNeighbor && !isMatchable,
+    'neighbor': isNeighborIndex && !isMatchable,
     'neighbor-match': isMatchable
   };
 };

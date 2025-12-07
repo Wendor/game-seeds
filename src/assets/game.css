@@ -224,7 +224,12 @@ body.dark-mode .ghost-cell.is-matchable {
     cursor: pointer;
     user-select: none;
     touch-action: manipulation;
-    transition: all 0.15s ease-out;
+    transition:
+        background-color 0.15s ease-out,
+        color 0.15s ease-out,
+        transform 0.15s ease-out,
+        box-shadow 0.15s ease-out,
+        opacity 0.15s ease-out;
 }
 
 .list-enter-active {
@@ -466,4 +471,106 @@ body.dark-mode .cell.neighbor-match {
 
 .back-arrow {
     font-size: 1.1em;
+}
+
+
+/* --- Цветовая градация по группам (сумма 10) --- */
+
+/* Группа 1 (числа 1 и 9) - Красный оттенок */
+.cell-group-1 {
+    background-color: rgba(239, 68, 68, 0.08);
+    /* red-500 */
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Группа 2 (числа 2 и 8) - Оранжевый/Янтарный */
+.cell-group-2 {
+    background-color: rgba(245, 158, 11, 0.08);
+    /* amber-500 */
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Группа 3 (числа 3 и 7) - Зеленый/Изумрудный */
+.cell-group-3 {
+    background-color: rgba(16, 185, 129, 0.08);
+    /* emerald-500 */
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+/* Группа 4 (числа 4 и 6) - Фиолетовый */
+.cell-group-4 {
+    background-color: rgba(139, 92, 246, 0.08);
+    /* violet-500 */
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+/* Группа 5 (число 5) - Синий (близкий к дефолтному, но чуть отличный) */
+.cell-group-5 {
+    background-color: rgba(59, 130, 246, 0.05);
+    /* blue-500 */
+    border-color: rgba(59, 130, 246, 0.15);
+}
+
+/* --- Адаптация для ТЕМНОЙ ТЕМЫ --- */
+/* Делаем цвета чуть насыщеннее, так как фон темный */
+body.dark-mode .cell-group-1 {
+    background-color: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+body.dark-mode .cell-group-2 {
+    background-color: rgba(245, 158, 11, 0.10);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+body.dark-mode .cell-group-3 {
+    background-color: rgba(16, 185, 129, 0.10);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+body.dark-mode .cell-group-4 {
+    background-color: rgba(139, 92, 246, 0.10);
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+body.dark-mode .cell-group-5 {
+    background-color: rgba(59, 130, 246, 0.10);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* --- ПРИОРИТЕТЫ ВЫДЕЛЕНИЯ --- */
+/* Важно: эти состояния должны перебивать базовый цвет группы */
+
+/* Выбранная ячейка - становится ярко синей */
+.cell.selected {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: white !important;
+}
+
+/* Подсказка - становится желтой */
+.cell.hint {
+    background-color: #fde047 !important;
+    border-color: #eab308 !important;
+    color: #854d0e !important;
+}
+
+/* Сосед - перебиваем фон группы на легкий синий */
+.cell.neighbor {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    border-color: rgba(59, 130, 246, 0.6) !important;
+}
+
+/* Сосед, с которым можно совпасть */
+.cell.neighbor-match {
+    background-color: rgba(253, 224, 71, 0.25) !important;
+    border-color: #eab308 !important;
+}
+
+/* Зачеркнутая ячейка - убираем цвет */
+.cell.crossed {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    opacity: 0.15 !important;
+    /* Делаем чуть прозрачнее, чем было */
 }
