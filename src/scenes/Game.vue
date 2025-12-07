@@ -17,7 +17,6 @@
     </header>
 
     <main class="grid-container" ref="gridContainerRef" @scroll="handleScroll">
-      
       <div class="ghost-row sticky-top" ref="topGhostRef" :class="{ visible: hasTopGhosts }">
         <div 
           v-for="(item, col) in topGhosts" 
@@ -26,8 +25,8 @@
           :class="{ 
             empty: !item,
             'is-neighbor': item && isNeighbor(item.index),
-            'is-matchable': item && isMatchable(item.index)
-          }"
+            'is-matchable': item && isMatchable(item.index),
+            [item ? getGroupClass(item.value) : '']: true  }"
           @click="handleGhostClick(item)"
         >
           {{ item ? item.value : '' }}
@@ -54,8 +53,8 @@
           :class="{ 
             empty: !item,
             'is-neighbor': item && isNeighbor(item.index),
-            'is-matchable': item && isMatchable(item.index)
-          }"
+            'is-matchable': item && isMatchable(item.index),
+            [item ? getGroupClass(item.value) : '']: true  }"
           @click="handleGhostClick(item)"
         >
           {{ item ? item.value : '' }}

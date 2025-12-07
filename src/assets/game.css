@@ -208,6 +208,69 @@ body.dark-mode .ghost-cell.is-matchable {
     border-color: #facc15 !important;
 }
 
+/* --- Цвета призрачных ячеек --- */
+/* 1. БАЗОВЫЙ ЦВЕТ ТЕКСТА (очень бледный) */
+/* Используем !important, чтобы гарантированно убрать зеленый цвет */
+
+.ghost-cell {
+    /* Светлая тема: черный цвет с прозрачностью 20% (еле виден) */
+    color: rgba(0, 0, 0, 0.4) !important;
+    background-color: transparent !important;
+}
+
+body.dark-mode .ghost-cell {
+    /* Темная тема: белый цвет с прозрачностью 20% */
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* 2. ЦВЕТНЫЕ РАМКИ ПО ГРУППАМ */
+
+/* Группа 1 (1-9): Красная */
+.ghost-cell.cell-group-1 {
+    border-color: rgba(239, 68, 68, 0.5) !important;
+}
+
+/* Группа 2 (2-8): Янтарная */
+.ghost-cell.cell-group-2 {
+    border-color: rgba(245, 158, 11, 0.6) !important;
+}
+
+/* Группа 3 (3-7): Зеленая */
+.ghost-cell.cell-group-3 {
+    border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+/* Группа 4 (4-6): Фиолетовая */
+.ghost-cell.cell-group-4 {
+    border-color: rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Группа 5 (5): Синяя */
+.ghost-cell.cell-group-5 {
+    border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* --- Яркость рамок для ТЕМНОЙ ТЕМЫ --- */
+body.dark-mode .ghost-cell.cell-group-1 {
+    border-color: rgba(248, 113, 113, 0.6) !important;
+}
+
+body.dark-mode .ghost-cell.cell-group-2 {
+    border-color: rgba(251, 191, 36, 0.6) !important;
+}
+
+body.dark-mode .ghost-cell.cell-group-3 {
+    border-color: rgba(52, 211, 153, 0.6) !important;
+}
+
+body.dark-mode .ghost-cell.cell-group-4 {
+    border-color: rgba(167, 139, 250, 0.6) !important;
+}
+
+body.dark-mode .ghost-cell.cell-group-5 {
+    border-color: rgba(96, 165, 250, 0.6) !important;
+}
+
 /* --- Ячейки игры --- */
 
 .cell {
@@ -573,4 +636,35 @@ body.dark-mode .cell-group-5 {
     border-color: transparent !important;
     opacity: 0.15 !important;
     /* Делаем чуть прозрачнее, чем было */
+}
+
+.ghost-cell.is-neighbor {
+    /* Возвращаем синий цвет и фон, перебивая бледные цвета групп */
+    border-color: #3b82f6 !important;
+    color: #2563eb !important;
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    animation: pulse-border-blue 1.5s infinite;
+    opacity: 1 !important;
+}
+
+.ghost-cell.is-matchable {
+    /* Возвращаем желтый цвет для совпадающей пары */
+    border-color: #eab308 !important;
+    color: #ca8a04 !important;
+    background-color: rgba(253, 224, 71, 0.25) !important;
+    animation: pulse-border-yellow 1.5s infinite;
+    opacity: 1 !important;
+}
+
+/* Адаптация этих состояний для темной темы */
+body.dark-mode .ghost-cell.is-neighbor {
+    color: #60a5fa !important;
+    border-color: #60a5fa !important;
+    background-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+body.dark-mode .ghost-cell.is-matchable {
+    color: #facc15 !important;
+    border-color: #facc15 !important;
+    background-color: rgba(234, 179, 8, 0.25) !important;
 }
