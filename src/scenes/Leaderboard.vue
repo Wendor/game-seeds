@@ -183,8 +183,8 @@ body.dark-mode .tabs {
 }
 
 body.dark-mode .tab-btn.active {
-  background-color: rgb(51, 65, 85); /* Slate-700 */
-  color: #60a5fa; /* Светло-синий */
+  background-color: rgb(var(--rgb-slate-700));
+  color: rgb(var(--rgb-blue-400));
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
@@ -244,11 +244,11 @@ body.dark-mode .stat-box {
 
 .rank {
   font-size: 1.1rem; font-weight: 800; width: 36px;
-  color: rgb(203, 213, 225); /* default slate-300 */
+  color: rgb(var(--rgb-slate-300));
 }
-.record-item:nth-child(1) .rank { color: rgb(var(--rgb-yellow)); } /* Gold */
-.record-item:nth-child(2) .rank { color: rgb(148, 163, 184); } /* Silver (Slate-400) */
-.record-item:nth-child(3) .rank { color: #b45309; } /* Bronze (оставим hex или добавим var) */
+.record-item:nth-child(1) .rank { color: rgb(var(--rgb-yellow)); }
+.record-item:nth-child(2) .rank { color: rgb(var(--rgb-slate-400)); }
+.record-item:nth-child(3) .rank { color: rgb(var(--rgb-bronze)); }
 
 .info { display: flex; flex: 1; justify-content: space-between; align-items: baseline; }
 .time { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }

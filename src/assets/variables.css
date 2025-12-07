@@ -1,87 +1,124 @@
 :root {
-    /* === 1. БАЗОВАЯ ПАЛИТРА (RGB примитивы) === */
-    /* Используем эти переменные для создания оттенков */
+    /* === 1. БАЗОВАЯ ПАЛИТРА (Только цифры RGB) === */
 
-    /* Основные цвета (Tailwind palette) */
+    /* Slate (Серые/Сизые) */
+    --rgb-slate-50: 248, 250, 252;
+    --rgb-slate-100: 241, 245, 249;
+    --rgb-slate-200: 226, 232, 240;
+    --rgb-slate-300: 203, 213, 225;
+    --rgb-slate-400: 148, 163, 184;
+    --rgb-slate-500: 100, 116, 139;
+    --rgb-slate-600: 71, 85, 105;
+    --rgb-slate-700: 51, 65, 85;
+    --rgb-slate-800: 30, 41, 59;
+    --rgb-slate-900: 15, 23, 42;
+
+    /* Основные цвета (500 - основной, 600 - hover, 400 - light) */
     --rgb-red: 239, 68, 68;
-    /* Red-500 */
+    /* red-500 */
+    --rgb-red-600: 220, 38, 38;
+
     --rgb-amber: 245, 158, 11;
-    /* Amber-500 */
+    /* amber-500 */
+    --rgb-bronze: 180, 83, 9;
+    /* amber-700 (для бронзы) */
+
     --rgb-green: 16, 185, 129;
-    /* Emerald-500 */
+    /* emerald-500 */
+    --rgb-green-600: 5, 150, 105;
+    /* emerald-600 */
+    --rgb-green-400: 52, 211, 153;
+    /* emerald-400 */
+
     --rgb-violet: 139, 92, 246;
-    /* Violet-500 */
+    /* violet-500 */
+    --rgb-violet-400: 167, 139, 250;
+
     --rgb-blue: 59, 130, 246;
-    /* Blue-500 */
+    /* blue-500 */
+    --rgb-blue-600: 37, 99, 235;
+    --rgb-blue-400: 96, 165, 250;
+
     --rgb-yellow: 234, 179, 8;
-    /* Yellow-500 */
+    /* yellow-500 */
+    --rgb-yellow-400: 250, 204, 21;
+    --rgb-yellow-700: 161, 98, 7;
 
     /* Нейтральные */
     --rgb-white: 255, 255, 255;
     --rgb-black: 0, 0, 0;
-    --rgb-slate-500: 100, 116, 139;
-    --rgb-slate-900: 15, 23, 42;
 
     /* === 2. СЕМАНТИКА (СВЕТЛАЯ ТЕМА) === */
 
     /* Фон и текст */
     --bg-main: rgb(var(--rgb-white));
-    --text-main: rgb(31, 41, 55);
-    /* Gray-800 */
+    --text-main: rgb(var(--rgb-slate-900));
+    /* #0f172a */
     --text-muted: rgb(var(--rgb-slate-500));
-
-    /* Ячейки */
-    --cell-bg: rgb(249, 250, 251);
-    /* Gray-50 */
-    --cell-border: rgb(229, 231, 235);
-    /* Gray-200 */
-    --cell-text: rgb(17, 24, 39);
-    /* Gray-900 */
+    --text-inverse: rgb(var(--rgb-white));
 
     /* UI Элементы */
-    --header-bg: rgba(255, 255, 255, 0.95);
-    --border-color: rgb(243, 244, 246);
-    /* Gray-100 */
+    --header-bg: rgba(var(--rgb-white), 0.95);
+    --border-color: rgb(var(--rgb-slate-100));
+    /* #f3f4f6 (был gray-100) */
     --card-bg: rgb(var(--rgb-white));
     --shadow-color: rgba(0, 0, 0, 0.1);
+    --modal-overlay: rgba(0, 0, 0, 0.4);
 
-    /* Кнопки (второстепенные) */
-    --btn-sec-bg: rgb(243, 244, 246);
-    --btn-sec-text: rgb(75, 85, 99);
-    --btn-sec-hover: rgb(229, 231, 235);
+    /* Ячейки */
+    --cell-bg: rgb(var(--rgb-slate-50));
+    /* #f9fafb */
+    --cell-border: rgb(var(--rgb-slate-200));
+    /* #e5e7eb */
+    --cell-text: rgb(var(--rgb-slate-900));
+    /* #111827 */
+
+    /* Кнопки (Secondary) */
+    --btn-sec-bg: rgb(var(--rgb-slate-100));
+    --btn-sec-text: rgb(var(--rgb-slate-600));
+    --btn-sec-hover: rgb(var(--rgb-slate-200));
+
+    /* Специфичные элементы */
+    --timer-bg: rgb(239, 246, 255);
+    /* #eff6ff (blue-50) */
+    --timer-win-bg: rgb(236, 253, 245);
+    /* #ecfdf5 (emerald-50) */
+    --toast-bg: rgb(var(--rgb-slate-800));
 
     /* Призраки */
-    --ghost-text-color: rgba(0, 0, 0, 0.4);
+    --ghost-text-color: rgba(var(--rgb-black), 0.4);
+    --ghost-border-opacity: 0.5;
 }
 
 /* === 3. ТЕМНАЯ ТЕМА === */
 body.dark-mode {
     /* Фон и текст */
     --bg-main: rgb(var(--rgb-slate-900));
-    --text-main: rgb(241, 245, 249);
-    /* Slate-100 */
-    --text-muted: rgb(148, 163, 184);
-    /* Slate-400 */
-
-    /* Ячейки */
-    --cell-bg: rgb(30, 41, 59);
-    /* Slate-800 */
-    --cell-border: rgb(51, 65, 85);
-    /* Slate-700 */
-    --cell-text: rgb(226, 232, 240);
-    /* Slate-200 */
+    --text-main: rgb(var(--rgb-slate-100));
+    --text-muted: rgb(var(--rgb-slate-400));
 
     /* UI Элементы */
-    --header-bg: rgba(15, 23, 42, 0.95);
-    --border-color: rgb(30, 41, 59);
-    --card-bg: rgb(30, 41, 59);
+    --header-bg: rgba(var(--rgb-slate-900), 0.95);
+    --border-color: rgb(var(--rgb-slate-800));
+    --card-bg: rgb(var(--rgb-slate-800));
     --shadow-color: rgba(0, 0, 0, 0.5);
 
+    /* Ячейки */
+    --cell-bg: rgb(var(--rgb-slate-800));
+    --cell-border: rgb(var(--rgb-slate-700));
+    --cell-text: rgb(var(--rgb-slate-200));
+
     /* Кнопки */
-    --btn-sec-bg: rgb(30, 41, 59);
-    --btn-sec-text: rgb(203, 213, 225);
-    --btn-sec-hover: rgb(51, 65, 85);
+    --btn-sec-bg: rgb(var(--rgb-slate-800));
+    --btn-sec-text: rgb(var(--rgb-slate-300));
+    --btn-sec-hover: rgb(var(--rgb-slate-700));
+
+    /* Специфичные */
+    --timer-bg: rgba(var(--rgb-blue), 0.15);
+    --timer-win-bg: rgba(var(--rgb-green), 0.15);
+    --toast-bg: rgb(var(--rgb-slate-700));
 
     /* Призраки */
-    --ghost-text-color: rgba(255, 255, 255, 0.6);
+    --ghost-text-color: rgba(var(--rgb-white), 0.6);
+    --ghost-border-opacity: 0.6;
 }

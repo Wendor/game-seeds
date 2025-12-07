@@ -8,7 +8,6 @@ interface PlayerDeps {
         canMatch: (idx1: number, idx2: number) => boolean;
         findNeighbors: (index: number) => number[];
         cleanEmptyRows: () => number;
-        // Добавили метод
         updateLinksAfterCross: (idx1: number, idx2: number) => void;
     };
     historyActions: {
@@ -48,7 +47,6 @@ export function usePlayer(deps: PlayerDeps) {
     };
 
     const handleCellClick = (index: number) => {
-        // Если играет бот — игрок не может вмешиваться
         if (state.isBotActive.value) return;
 
         uiActions.clearHintUI();
@@ -57,7 +55,6 @@ export function usePlayer(deps: PlayerDeps) {
         const cell = cells.value[index];
         if (!cell || cell.status === 'crossed') return;
 
-        // 1. Если ничего не выбрано — выбираем
         if (selectedIndex.value === null) {
             uiActions.playSound('select');
             cell.status = 'selected';
@@ -66,19 +63,16 @@ export function usePlayer(deps: PlayerDeps) {
             return;
         }
 
-        // 2. Если кликнули по уже выбранной — отменяем выбор
         if (selectedIndex.value === index) {
             cell.status = 'active';
             selectedIndex.value = null;
             return;
         }
 
-        // 3. Попытка составить пару
         const prevIndex = selectedIndex.value;
         const prevCell = cells.value[prevIndex];
 
         if (prevCell && gameActions.canMatch(prevIndex, index)) {
-            // Успешная пара
             historyActions.recordMatch([prevIndex, index]);
             uiActions.playSound('match');
             uiActions.haptic.success();
@@ -87,10 +81,8 @@ export function usePlayer(deps: PlayerDeps) {
             cell.status = 'crossed';
             selectedIndex.value = null;
 
-            // ОПТИМИЗАЦИЯ: Обновляем связи
             gameActions.updateLinksAfterCross(prevIndex, index);
 
-            // Отложенная очистка строк
             setTimeout(() => {
                 historyActions.recordClean();
                 const removedCount = gameActions.cleanEmptyRows();
@@ -104,12 +96,11 @@ export function usePlayer(deps: PlayerDeps) {
             }, 300);
 
         } else {
-            // Ошибка (не пара)
             uiActions.playSound('error');
             uiActions.haptic.medium();
 
-            if (prevCell) prevCell.status = 'active'; // Сбрасываем старую
-            cell.status = 'selected'; // Выбираем новую
+            if (prevCell) prevCell.status = 'active';
+            cell.status = 'selected';
             selectedIndex.value = index;
             neighborIndices.value = gameActions.findNeighbors(index);
         }

@@ -15,7 +15,6 @@ const dictionary = {
             stats: 'Статистика',
             rules: 'Правила игры',
             saveInfo: '{mode} • {time}',
-            // Новые ключи
             lang: 'Сменить язык',
             soundOn: 'Включить звук',
             soundOff: 'Выключить звук',
@@ -44,7 +43,6 @@ const dictionary = {
             noMoves: 'Ходов нет! Жми "Добавить"',
             copied: 'Скопировано!',
             shareText: '🏆 Победа в Семечках!\nЯ прошел в режиме {mode} за {time}!',
-            // Новый ключ
             botGiveUp: 'Бот: Слишком много цифр, я сдаюсь.'
         },
         rules: {
@@ -83,7 +81,6 @@ const dictionary = {
             stats: 'Statistics',
             rules: 'How to play',
             saveInfo: '{mode} • {time}',
-            // New keys
             lang: 'Switch language',
             soundOn: 'Unmute',
             soundOff: 'Mute',
@@ -112,7 +109,6 @@ const dictionary = {
             noMoves: 'No moves! Press "Add Rows"',
             copied: 'Copied!',
             shareText: '🏆 Victory in Seeds!\nI completed {mode} mode in {time}!',
-            // New key
             botGiveUp: 'Bot: Too many numbers, I give up.'
         },
         rules: {

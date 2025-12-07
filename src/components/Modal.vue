@@ -37,7 +37,7 @@ defineEmits(['confirm', 'cancel']);
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--modal-overlay);
   backdrop-filter: blur(4px);
   z-index: 200;
   display: flex;

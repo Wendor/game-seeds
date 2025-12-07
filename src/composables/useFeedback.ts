@@ -1,6 +1,6 @@
 import { ref } from 'vue';
-import { playSound } from '../utils/audio'; // Предполагается, что utils/audio существует
-import { haptic } from '../utils/haptics'; // Предполагается, что utils/haptics существует
+import { playSound } from '../utils/audio';
+import { haptic } from '../utils/haptics';
 import { GAME_CONFIG } from '../config';
 
 export function useFeedback() {
@@ -18,7 +18,7 @@ export function useFeedback() {
     return {
         toastMessage,
         showToast,
-        playSound, // Проксируем утилиты
+        playSound,
         haptic
     };
 }

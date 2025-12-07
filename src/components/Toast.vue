@@ -28,8 +28,7 @@ defineProps<{
 }
 
 .toast-content {
-  /* Используем темный фон из переменных (например, Slate-800 или 900) */
-  background-color: rgb(30, 41, 59); /* Slate-800 */
+  background-color: var(--toast-bg);
   color: rgb(var(--rgb-white));
   padding: 12px 24px;
   border-radius: 50px;

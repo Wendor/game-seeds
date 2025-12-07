@@ -1,5 +1,4 @@
 /* === ЛОГИКА ЦВЕТОВЫХ ГРУПП === */
-/* Определяем цвет группы один раз для всех типов ячеек */
 .cell-group-1,
 .ghost-cell.cell-group-1 {
     --group-color: var(--rgb-red);
@@ -62,9 +61,8 @@
     font-family: monospace;
     font-size: 1.2rem;
     font-weight: 700;
-    /* Используем базовый синий */
     color: rgb(var(--rgb-blue));
-    background: rgba(var(--rgb-blue), 0.1);
+    background: var(--timer-bg);
     padding: 4px 12px;
     border-radius: 20px;
     border: 1px solid transparent;
@@ -72,19 +70,16 @@
 
 .timer.finished {
     color: rgb(var(--rgb-green));
-    background: rgba(var(--rgb-green), 0.1);
+    background: var(--timer-win-bg);
 }
 
 body.dark-mode .timer {
-    background: rgba(var(--rgb-blue), 0.15);
-    color: #60a5fa;
-    /* Можно тоже вынести в переменную, но для одного раза ок */
+    color: rgb(var(--rgb-blue-400));
     border-color: rgba(var(--rgb-blue), 0.3);
 }
 
 body.dark-mode .timer.finished {
-    background: rgba(var(--rgb-green), 0.15);
-    color: #34d399;
+    color: rgb(var(--rgb-green-400));
     border-color: rgba(var(--rgb-green), 0.3);
 }
 
@@ -95,6 +90,7 @@ body.dark-mode .timer.finished {
     flex-direction: column;
     align-items: center;
     padding: 0 15px;
+    /* Исправлено смещение */
     width: 100%;
     box-sizing: border-box;
     overflow-y: auto;
@@ -114,7 +110,7 @@ body.dark-mode .timer.finished {
     margin: 4px 0;
 }
 
-/* ПРИЗРАКИ (ХЕЛПЕРЫ) */
+/* ПРИЗРАКИ */
 .ghost-row {
     position: sticky;
     z-index: 25;
@@ -145,7 +141,6 @@ body.dark-mode .timer.finished {
     z-index: 26;
 }
 
-/* СТИЛИ ПРИЗРАКА */
 .ghost-cell {
     aspect-ratio: 1;
     display: flex;
@@ -155,12 +150,10 @@ body.dark-mode .timer.finished {
     font-weight: 800;
     border-radius: 8px;
     cursor: pointer;
-
-    /* Дефолт (без группы) - зеленый (или можно сделать серым) */
     color: var(--ghost-text-color) !important;
     background-color: transparent !important;
     border: 2px dashed rgba(var(--rgb-green), 0.5) !important;
-    /* Дефолтная рамка */
+    /* Default border */
 }
 
 .ghost-cell.empty {
@@ -169,17 +162,11 @@ body.dark-mode .timer.finished {
     cursor: default;
 }
 
-/* Призрак с ГРУППОЙ (красит только рамку) */
 .ghost-cell[class*="cell-group-"] {
-    border-color: rgba(var(--group-color), 0.5) !important;
+    border-color: rgba(var(--group-color), var(--ghost-border-opacity)) !important;
 }
 
-/* В темной теме рамку чуть ярче */
-body.dark-mode .ghost-cell[class*="cell-group-"] {
-    border-color: rgba(var(--group-color), 0.6) !important;
-}
-
-/* ЯЧЕЙКИ ИГРЫ */
+/* ЯЧЕЙКИ */
 .cell {
     aspect-ratio: 1;
     display: flex;
@@ -194,12 +181,9 @@ body.dark-mode .ghost-cell[class*="cell-group-"] {
     cursor: pointer;
     user-select: none;
     touch-action: manipulation;
-
-    /* Исключаем border из анимации, чтобы не дрожал */
     transition: background-color 0.15s ease-out, color 0.15s ease-out, transform 0.15s ease-out, box-shadow 0.15s ease-out, opacity 0.15s ease-out;
 }
 
-/* Ячейка с ГРУППОЙ (красит фон) */
 .cell[class*="cell-group-"] {
     background-color: rgba(var(--group-color), 0.08);
     border-color: rgba(var(--group-color), 0.2);
@@ -210,9 +194,7 @@ body.dark-mode .cell[class*="cell-group-"] {
     border-color: rgba(var(--group-color), 0.3);
 }
 
-/* СПЕЦ. СОСТОЯНИЯ (Перебивают группы через !important) */
-
-/* Выбрана */
+/* СПЕЦ. СОСТОЯНИЯ */
 .cell.selected {
     background-color: rgb(var(--rgb-blue)) !important;
     color: rgb(var(--rgb-white)) !important;
@@ -222,7 +204,6 @@ body.dark-mode .cell[class*="cell-group-"] {
     z-index: 2;
 }
 
-/* Зачеркнута */
 .cell.crossed {
     background-color: transparent !important;
     border-color: transparent !important;
@@ -232,77 +213,116 @@ body.dark-mode .cell[class*="cell-group-"] {
     opacity: 0.15 !important;
 }
 
-/* Подсказка */
 .cell.hint {
-    background-color: rgb(253, 224, 71) !important;
-    /* Yellow-300 */
-    color: rgb(133, 77, 14) !important;
-    /* Yellow-900 */
+    background-color: rgb(var(--rgb-yellow-400)) !important;
+    /* Было fde047 */
+    color: rgb(var(--rgb-yellow-700)) !important;
+    /* Было 854d0e */
     border-color: rgb(var(--rgb-yellow)) !important;
     animation: pulse 1s infinite;
     z-index: 3;
 }
 
-/* Сосед (для Cell и Ghost) */
+/* Сосед */
 .cell.neighbor,
 .ghost-cell.is-neighbor {
-    --highlight-color: var(--rgb-blue);
-    border-color: rgb(var(--highlight-color)) !important;
-    background-color: rgba(var(--highlight-color), 0.15) !important;
-    color: rgb(var(--highlight-color)) !important;
-    /* Для призрака */
+    --highlight: var(--rgb-blue);
+    border-color: rgb(var(--highlight)) !important;
+    background-color: rgba(var(--highlight), 0.15) !important;
+    color: rgb(var(--highlight)) !important;
     border-style: dashed !important;
     animation: pulse-border-blue 1.5s infinite;
     opacity: 1 !important;
 }
 
-/* Сосед-пара (для Cell и Ghost) */
+body.dark-mode .cell.neighbor,
+body.dark-mode .ghost-cell.is-neighbor {
+    --highlight: var(--rgb-blue-400);
+}
+
+/* Сосед-пара */
 .cell.neighbor-match,
 .ghost-cell.is-matchable {
-    --highlight-color: var(--rgb-yellow);
-    border-color: rgb(var(--highlight-color)) !important;
+    --highlight: var(--rgb-yellow);
+    border-color: rgb(var(--highlight)) !important;
     background-color: rgba(253, 224, 71, 0.25) !important;
-    color: rgb(202, 138, 4) !important;
-    /* Yellow-700 */
+    color: rgb(var(--rgb-yellow-700)) !important;
     border-style: dashed !important;
     animation: pulse-border-yellow 1.5s infinite;
     opacity: 1 !important;
     z-index: 1;
 }
 
-/* Адаптация выделений для темной темы */
-body.dark-mode .cell.neighbor,
-body.dark-mode .ghost-cell.is-neighbor {
-    color: rgb(96, 165, 250) !important;
-    /* Blue-400 */
-    border-color: rgb(96, 165, 250) !important;
-}
-
 body.dark-mode .cell.neighbor-match,
 body.dark-mode .ghost-cell.is-matchable {
-    color: rgb(250, 204, 21) !important;
-    /* Yellow-400 */
-    border-color: rgb(250, 204, 21) !important;
+    --highlight: var(--rgb-yellow-400);
+    color: rgb(var(--highlight)) !important;
 }
 
-/* АНИМАЦИИ (без изменений, кроме использования переменных) */
-.list-enter-active {
-    animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 10;
+/* КНОПКИ УПРАВЛЕНИЯ */
+.controls {
+    position: relative;
+    flex: 0 0 auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 12px 16px 20px 16px;
+    background: var(--header-bg);
+    border-top: 1px solid var(--border-color);
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
 }
 
-.list-leave-active {
-    transition: all 0.4s ease;
-    opacity: 0;
-    transform: scale(0);
-    margin: 0;
-    padding: 0;
+.icon-text {
+    font-size: 1.6rem;
+    line-height: 1;
+    padding-bottom: 2px;
 }
 
-.list-move {
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.5, 1);
+.btn-danger {
+    background-color: rgb(var(--rgb-red));
+    color: rgb(var(--rgb-white));
+    box-shadow: 0 4px 6px -1px rgba(var(--rgb-red), 0.2);
+    font-size: 1.5rem;
+    line-height: 1;
 }
 
+.btn-danger:hover {
+    background-color: rgb(var(--rgb-red-600));
+}
+
+.win-message {
+    margin: 30px 0;
+    font-size: 2rem;
+    color: rgb(var(--rgb-green));
+    font-weight: 800;
+    text-align: center;
+    animation: popIn 0.5s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.win-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.btn-success {
+    background-color: rgb(var(--rgb-green));
+    color: rgb(var(--rgb-white));
+    box-shadow: 0 4px 6px -1px rgba(var(--rgb-green), 0.3);
+}
+
+.btn-success:hover {
+    background-color: rgb(var(--rgb-green-600));
+}
+
+/* ... (анимации те же, можно оставить как есть) ... */
 @keyframes slideInUp {
     0% {
         opacity: 0;
@@ -357,69 +377,6 @@ body.dark-mode .ghost-cell.is-matchable {
     }
 }
 
-/* ПРОЧЕЕ (Controls, Win Message) */
-.controls {
-    position: relative;
-    flex: 0 0 auto;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: 12px 16px 20px 16px;
-    background: var(--header-bg);
-    border-top: 1px solid var(--border-color);
-    z-index: 20;
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-}
-
-.icon-text {
-    font-size: 1.6rem;
-    line-height: 1;
-    padding-bottom: 2px;
-}
-
-.btn-danger {
-    background-color: rgb(239, 68, 68);
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
-    font-size: 1.5rem;
-    line-height: 1;
-}
-
-.btn-danger:hover {
-    background-color: rgb(220, 38, 38);
-}
-
-.win-message {
-    margin: 30px 0;
-    font-size: 2rem;
-    color: rgb(16, 185, 129);
-    font-weight: 800;
-    text-align: center;
-    animation: popIn 0.5s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.win-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.btn-success {
-    background-color: rgb(16, 185, 129);
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
-}
-
-.btn-success:hover {
-    background-color: rgb(5, 150, 105);
-}
-
 @keyframes popIn {
     0% {
         opacity: 0;
@@ -452,10 +409,8 @@ body.dark-mode .ghost-cell.is-matchable {
         border-radius: 12px;
     }
 
-    /* Hover эффект, исключая спец. состояния */
     .cell:hover:not(.crossed):not(.selected):not(.hint):not(.neighbor):not(.neighbor-match) {
         background-color: var(--btn-sec-hover);
-        /* Или свой оттенок */
         border-color: rgb(var(--rgb-blue));
         transform: translateY(-1px);
     }

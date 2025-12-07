@@ -137,7 +137,7 @@ const {
   findHint, 
   cleanEmptyRows, 
   findNeighbors,
-  updateLinksAfterCross // Добавлено для оптимизации
+  updateLinksAfterCross
 } = useGameLogic();
 
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
@@ -148,7 +148,6 @@ const showRestartModal = ref(false);
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => nextId.value > 0 && activeCount.value === 0);
 
-// --- GHOST LOGIC ---
 type GhostItem = { value: number; index: number } | null;
 const gridContainerRef = ref<HTMLElement | null>(null);
 const gridRef = ref<HTMLElement | null>(null);
@@ -249,8 +248,6 @@ const scrollToCell = (index: number) => {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
-// --- COMPOSABLES INIT ---
-
 const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints({ findHint, scrollToCell, showToast });
 
 const { isBotActive, toggleBot, stopBot } = useBot({
@@ -260,7 +257,7 @@ const { isBotActive, toggleBot, stopBot } = useBot({
       findNeighbors, 
       addLines: () => addLines(props.mode), 
       cleanEmptyRows,
-      updateLinksAfterCross // Передаем метод оптимизации
+      updateLinksAfterCross
     },
     historyActions: { recordMatch, recordAdd, recordClean, popHistory },
     uiActions: { playSound, showToast, scrollToCell },
@@ -273,7 +270,7 @@ const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = useP
       canMatch, 
       findNeighbors, 
       cleanEmptyRows,
-      updateLinksAfterCross // Передаем метод оптимизации
+      updateLinksAfterCross
     },
     historyActions: { recordMatch, recordClean, popHistory },
     uiActions: { playSound, showToast, haptic, clearHintUI },
@@ -376,7 +373,6 @@ const confirmRestart = () => {
   playSound('restart');
   stopBot();
   clearSave();
-  // ВМЕСТО initGame() ТЕПЕРЬ ОТПРАВЛЯЕМ СОБЫТИЕ РОДИТЕЛЮ
   emit('restart');
   showRestartModal.value = false;
 };
@@ -413,7 +409,6 @@ const getCellClasses = (cell: Cell, index: number) => {
     if (groupClass) classes[groupClass] = true;
   }
 
-  // Если работает бот, нам не нужны остальные визуальные эффекты игрока
   if (isBotActive.value) {
     return classes;
   }

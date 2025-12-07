@@ -1,9 +1,8 @@
 import { ref, type Ref } from 'vue';
 import type { Cell } from '../types';
-import { useI18n } from './useI18n'; // <--- Импортируем i18n
+import { useI18n } from './useI18n';
 
 interface BotDependencies {
-    // ... интерфейс без изменений ...
     cells: Ref<Cell[]>;
     gameActions: {
         canMatch: (idx1: number, idx2: number) => boolean;
@@ -30,7 +29,7 @@ interface BotDependencies {
 
 export function useBot(deps: BotDependencies) {
     const { cells, gameActions, historyActions, uiActions, gameState } = deps;
-    const { t } = useI18n(); // <--- Инициализируем
+    const { t } = useI18n();
     const isBotActive = ref(false);
     let botTimer: number | null = null;
 
@@ -142,7 +141,7 @@ export function useBot(deps: BotDependencies) {
             botTimer = setTimeout(runBotStep, 50);
         } else {
             if (cells.value.length >= 4500) {
-                uiActions.showToast(t('game.botGiveUp')); // <--- ИСПОЛЬЗУЕМ t()
+                uiActions.showToast(t('game.botGiveUp'));
                 stopBot();
                 return;
             }

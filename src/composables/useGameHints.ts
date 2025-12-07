@@ -26,7 +26,6 @@ export function useGameHints(deps: HintsDeps) {
     const showNextHint = () => {
         clearHintUI();
 
-        // Ищем подсказку, начиная с последнего места или с начала
         let hint = findHint(nextHintStartIndex.value);
         if (!hint && nextHintStartIndex.value > 0) {
             hint = findHint(0);
@@ -35,13 +34,9 @@ export function useGameHints(deps: HintsDeps) {
         if (hint && typeof hint[0] === 'number') {
             const firstIndex = hint[0];
             hintIndices.value = hint;
-
-            // Запоминаем, где остановились, чтобы следующая подсказка была новой
             nextHintStartIndex.value = firstIndex + 1;
-
             scrollToCell(firstIndex);
 
-            // Авто-скрытие через 2 секунды
             hintTimeout = setTimeout(() => {
                 hintIndices.value = [];
             }, 2000);
@@ -51,7 +46,6 @@ export function useGameHints(deps: HintsDeps) {
         }
     };
 
-    // Сброс индекса поиска (например, при перемешивании или новом ходе)
     const resetHintIndex = () => {
         nextHintStartIndex.value = 0;
     };

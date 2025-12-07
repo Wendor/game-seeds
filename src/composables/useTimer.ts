@@ -11,7 +11,7 @@ export function useTimer() {
     });
 
     const startTimer = () => {
-        stopTimer(); // На случай, если уже запущен
+        stopTimer();
         timerInterval = setInterval(() => {
             secondsElapsed.value++;
         }, 1000);

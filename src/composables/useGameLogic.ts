@@ -11,9 +11,6 @@ export function useGameLogic() {
     const cells = ref<Cell[]>([]);
     const nextId = ref(0);
 
-    // --- Linked List Helpers (Оптимизация) ---
-
-    // Пересчет связей для ВСЕГО поля (вызывать при старте, загрузке или очистке строк)
     const rebuildLinks = () => {
         let lastActiveIndex: number | null = null;
 
@@ -23,27 +20,22 @@ export function useGameLogic() {
                 cell.next = null;
                 return;
             }
-
-            // Связываем текущую с предыдущей активной
             cell.prev = lastActiveIndex;
 
-            // Если была предыдущая, связываем её с текущей
             if (lastActiveIndex !== null && cells.value[lastActiveIndex]) {
                 cells.value[lastActiveIndex]!.next = index;
             }
 
             lastActiveIndex = index;
-            cell.next = null; // Пока не знаем следующего
+            cell.next = null;
         });
     };
 
-    // Обновление связей при зачеркивании ОДНОЙ пары (быстро)
     const updateLinksAfterCross = (idx1: number, idx2: number) => {
         const c1 = cells.value[idx1];
         const c2 = cells.value[idx2];
         if (!c1 || !c2) return;
 
-        // "Сшиваем" разрыв вокруг idx1
         if (c1.prev !== null && c1.prev !== undefined) {
             const prevCell = cells.value[c1.prev];
             if (prevCell) prevCell.next = c1.next;
@@ -53,7 +45,6 @@ export function useGameLogic() {
             if (nextCell) nextCell.prev = c1.prev;
         }
 
-        // "Сшиваем" разрыв вокруг idx2
         if (c2.prev !== null && c2.prev !== undefined) {
             const prevCell = cells.value[c2.prev];
             if (prevCell) prevCell.next = c2.next;
@@ -63,18 +54,13 @@ export function useGameLogic() {
             if (nextCell) nextCell.prev = c2.prev;
         }
 
-        // Сами ячейки отключаем от списка
         c1.prev = c1.next = null;
         c2.prev = c2.next = null;
     };
 
-    // --- Helpers ---
-
-    // Теперь проверка горизонтального соседа мгновенная!
     const isHorizontalNeighbor = (idx1: number, idx2: number): boolean => {
         const c1 = cells.value[idx1];
         if (!c1) return false;
-        // Либо c1.next указывает на idx2, либо c1.prev указывает на idx2
         return c1.next === idx2 || c1.prev === idx2;
     };
 
@@ -86,15 +72,13 @@ export function useGameLogic() {
         const start = Math.min(idx1, idx2);
         const end = Math.max(idx1, idx2);
 
-        // Для вертикали все еще нужен цикл, но мы прыгаем по 9
         for (let i = start + 9; i < end; i += 9) {
             const cell = cells.value[i];
-            if (cell && cell.status !== 'crossed') return false; // Есть препятствие
+            if (cell && cell.status !== 'crossed') return false;
         }
         return true;
     };
 
-    // --- Core Checks ---
     const canMatch = (idx1: number, idx2: number): boolean => {
         const c1 = cells.value[idx1];
         const c2 = cells.value[idx2];
@@ -107,7 +91,6 @@ export function useGameLogic() {
         return isHorizontalNeighbor(idx1, idx2) || isVerticalNeighbor(idx1, idx2);
     };
 
-    // --- Actions ---
     const generateCells = (mode: GameMode) => {
         nextId.value = 0;
         let newCells: Cell[] = [];
@@ -124,23 +107,20 @@ export function useGameLogic() {
         }
 
         cells.value = newCells;
-        rebuildLinks(); // <--- Важно: строим связи
+        rebuildLinks();
     };
 
     const restoreCells = (savedCells: Cell[], savedId: number) => {
         cells.value = savedCells;
         nextId.value = savedId;
-        rebuildLinks(); // <--- Важно: восстанавливаем связи после загрузки
+        rebuildLinks();
     };
 
     const addLines = (mode: GameMode) => {
-        // ... (код генерации newValues тот же, что был) ...
-        // Копируй логику из старого файла для newValues
         let newValues: number[] = [];
         const activeCells = cells.value.filter(c => c.status !== 'crossed');
 
         if (mode === 'easy') {
-            // ... старая логика easy ...
             for (let i = 0; i < activeCells.length; i++) {
                 const randomIndex = Math.floor(Math.random() * activeCells.length);
                 const sourceCell = activeCells[randomIndex];
@@ -166,40 +146,21 @@ export function useGameLogic() {
         }));
 
         cells.value.push(...newCells);
-        rebuildLinks(); // <--- Перестраиваем, так как добавили в конец
+        rebuildLinks();
         return newCells.length;
     };
 
-    // Теперь findHint работает молниеносно для горизонталей
     const findHint = (startIndex = 0): number[] | null => {
-        // Используем связи для быстрого прохода
-        let currentIdx = startIndex;
-
-        // Если startIndex попал на crossed, ищем первого живого
-        if (cells.value[currentIdx]?.status === 'crossed') {
-            // Тут можно было бы использовать .next, но для надежности в hints проход по массиву ок, 
-            // так как hint вызывается редко. 
-            // Но для бота лучше использовать проход по .next
-        }
-
         const len = cells.value.length;
-        // Оптимизированный поиск не делаем, чтобы не усложнять код чтения Hints
-        // (Оставим старый цикл, но используем быструю canMatch)
         for (let i = startIndex; i < len; i++) {
             const c1 = cells.value[i];
             if (!c1 || c1.status === 'crossed') continue;
 
-            // Оптимизация: сначала проверяем "связного" соседа (горизонталь)
             if (c1.next !== null && c1.next !== undefined) {
                 if (canMatch(i, c1.next)) return [i, c1.next];
             }
 
-            // Потом вертикаль и дальних (если логика позволяет "разрывы" в Hint)
-            // В классике hint ищет любую пару.
-            // Для скорости можно оставить полный перебор только для Vertical
-
             for (let j = i + 1; j < len; j++) {
-                // Тут можно добавить пропуск, если j далеко и не вертикаль
                 const c2 = cells.value[j];
                 if (!c2 || c2.status === 'crossed') continue;
                 if (canMatch(i, j)) return [i, j];
@@ -213,28 +174,24 @@ export function useGameLogic() {
         let rowsRemoved = 0;
         let hasChanges = false;
 
-        // Собираем новый массив (это предотвращает "мигание" стилей)
         const newCells: Cell[] = [];
 
         for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
             const chunk = cells.value.slice(i, i + ROW_SIZE);
 
-            // Проверяем: ряд полный (9 шт) и все зачеркнуты
             const isEmptyRow = chunk.length === ROW_SIZE && chunk.every(c => c.status === 'crossed');
 
             if (isEmptyRow) {
                 hasChanges = true;
                 rowsRemoved++;
-                // Не добавляем этот чанк в новый массив
             } else {
                 newCells.push(...chunk);
             }
         }
 
         if (hasChanges) {
-            // Атомарная замена массива: Vue видит разницу и корректно удаляет элементы
             cells.value = newCells;
-            rebuildLinks(); // Обязательно перестраиваем связи оптимизации
+            rebuildLinks();
         }
 
         return rowsRemoved;
@@ -245,15 +202,12 @@ export function useGameLogic() {
         const cell = cells.value[index];
         if (!cell) return [];
 
-        // 1. Быстрые горизонтальные соседи через Linked List
         if (cell.prev !== null && cell.prev !== undefined) neighbors.push(cell.prev);
         if (cell.next !== null && cell.next !== undefined) neighbors.push(cell.next);
 
-        // 2. Вертикальные (тут старый метод, т.к. колонок всего 9)
         const len = cells.value.length;
         const ROW_SIZE = 9;
 
-        // DOWN
         for (let i = index + ROW_SIZE; i < len; i += ROW_SIZE) {
             const c = cells.value[i];
             if (c && c.status !== 'crossed') {
@@ -261,7 +215,6 @@ export function useGameLogic() {
                 break;
             }
         }
-        // UP
         for (let i = index - ROW_SIZE; i >= 0; i -= ROW_SIZE) {
             const c = cells.value[i];
             if (c && c.status !== 'crossed') {
@@ -283,6 +236,6 @@ export function useGameLogic() {
         findHint,
         cleanEmptyRows,
         findNeighbors,
-        updateLinksAfterCross // <--- Экспортируем, чтобы вызвать при ходе
+        updateLinksAfterCross
     };
 }
