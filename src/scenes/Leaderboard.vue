@@ -150,7 +150,6 @@ h2 {
 }
 .title-icon { color: rgb(var(--rgb-blue)); }
 
-/* === ТАБЫ === */
 .tabs {
   display: flex; 
   background: var(--btn-sec-bg); 
@@ -170,7 +169,6 @@ h2 {
 .tab-icon { opacity: 0.7; }
 .tab-btn.active .tab-icon { opacity: 1; }
 
-/* Активная кнопка */
 .tab-btn.active { 
   background: var(--card-bg); 
   color: rgb(var(--rgb-blue)); 
