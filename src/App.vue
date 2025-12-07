@@ -52,9 +52,8 @@ type ScreenType = 'menu' | 'rules' | 'game' | 'leaderboard';
 const currentScreen = ref<ScreenType>('menu');
 const activeGameMode = ref<GameMode>('classic');
 const isResumeGame = ref(false);
-const restartCounter = ref(0); // Счетчик для принудительного пересоздания игры
+const restartCounter = ref(0);
 
-// --- ТЕМНАЯ ТЕМА ---
 const isDark = ref(false);
 
 const updateMetaThemeColor = (dark: boolean) => {
@@ -100,21 +99,16 @@ onMounted(() => {
     }
   });
 });
-// -------------------
-
-// Ключ теперь зависит от счетчика рестартов.
-// При его изменении Vue уничтожит старый компонент Game и создаст новый.
 const gameKey = computed(() => `${activeGameMode.value}-${restartCounter.value}`);
 
 const handleStartGame = (mode: GameMode) => {
   activeGameMode.value = mode;
   isResumeGame.value = false;
-  restartCounter.value++; // Гарантируем свежую игру
+  restartCounter.value++;
   currentScreen.value = 'game';
 };
 
 const handleContinueGame = () => {
-  // Исправление бага: загружаем режим из сохранения перед стартом
   const savedData = localStorage.getItem('seeds-save');
   if (savedData) {
     try {
@@ -128,19 +122,16 @@ const handleContinueGame = () => {
   }
 
   isResumeGame.value = true;
-  // Не меняем restartCounter, чтобы не сбросить состояние компонента, если он закеширован
-  // Но так как у нас v-if/v-else, он скорее всего создастся заново, но с флагом resume=true
   currentScreen.value = 'game';
 };
 
 const handleRestart = () => {
-  isResumeGame.value = false; // Это новая игра, а не продолжение
-  restartCounter.value++;     // Изменяем ключ -> Vue полностью пересоздает <Game />
+  isResumeGame.value = false;
+  restartCounter.value++;
 };
 </script>
 
 <style>
-
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -219,22 +210,20 @@ body {
 .btn-xl { padding: 18px 24px; font-size: 1.2rem; width: 100%; }
 .btn-icon { width: 52px; font-size: 1.4rem; padding: 0; flex: 0 0 auto; }
 
-/* Primary Button (используем --rgb-blue) */
 .btn-primary { 
   background-color: rgb(var(--rgb-blue)); 
   color: rgb(var(--rgb-white)); 
   box-shadow: 0 4px 6px -1px rgba(var(--rgb-blue), 0.2); 
 }
 .btn-primary:hover { 
-  background-color: rgb(37, 99, 235); /* blue-600 */ 
+  background-color: rgb(var(--rgb-blue-600));
 }
 .btn-primary:disabled { 
-  background-color: rgb(156, 163, 175); /* gray-400 */
+  background-color: rgb(var(--rgb-slate-400)); 
   box-shadow: none; 
   opacity: 0.7; 
 }
 
-/* Secondary Button (используем семантические переменные) */
 .btn-secondary { 
   background-color: var(--btn-sec-bg); 
   color: var(--btn-sec-text); 
@@ -246,6 +235,6 @@ body {
 .btn-secondary:disabled { opacity: 0.5; }
 
 body.dark-mode .btn-secondary { 
-  border-color: rgb(51, 65, 85); /* slate-700 */
+  border-color: rgb(var(--rgb-slate-700)); 
 }
 </style>
