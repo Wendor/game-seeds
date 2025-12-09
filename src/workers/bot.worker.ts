@@ -1,16 +1,21 @@
 // src/workers/bot.worker.ts
 import type { Cell } from '../types';
 
-// === Вспомогательная логика (копия логики из useGameLogic) ===
+// === Типы для отката действий ===
+interface LinkChange {
+    index: number;
+    field: 'prev' | 'next';
+    oldValue: number | null | undefined;
+}
 
-// Проверка: являются ли ячейки соседями по горизонтали
+// === Вспомогательные функции ===
+
 const isHorizontalNeighbor = (cells: Cell[], idx1: number, idx2: number): boolean => {
     const c1 = cells[idx1];
     if (!c1) return false;
     return c1.next === idx2 || c1.prev === idx2;
 };
 
-// Проверка: являются ли ячейки соседями по вертикали
 const isVerticalNeighbor = (cells: Cell[], idx1: number, idx2: number): boolean => {
     const col1 = idx1 % 9;
     const col2 = idx2 % 9;
@@ -26,7 +31,6 @@ const isVerticalNeighbor = (cells: Cell[], idx1: number, idx2: number): boolean 
     return true;
 };
 
-// Можно ли объединить пару
 const canMatch = (cells: Cell[], idx1: number, idx2: number): boolean => {
     const c1 = cells[idx1];
     const c2 = cells[idx2];
@@ -38,21 +42,17 @@ const canMatch = (cells: Cell[], idx1: number, idx2: number): boolean => {
     return isHorizontalNeighbor(cells, idx1, idx2) || isVerticalNeighbor(cells, idx1, idx2);
 };
 
-// Поиск всех активных соседей для клетки
 const findNeighbors = (cells: Cell[], index: number): number[] => {
     const neighbors: number[] = [];
     const cell = cells[index];
     if (!cell) return [];
 
-    // Горизонтальные (по ссылкам)
     if (cell.prev !== null && cell.prev !== undefined) neighbors.push(cell.prev);
     if (cell.next !== null && cell.next !== undefined) neighbors.push(cell.next);
 
-    // Вертикальные (по сетке)
     const len = cells.length;
     const ROW_SIZE = 9;
 
-    // Вниз
     for (let i = index + ROW_SIZE; i < len; i += ROW_SIZE) {
         const c = cells[i];
         if (c && c.status !== 'crossed') {
@@ -60,7 +60,6 @@ const findNeighbors = (cells: Cell[], index: number): number[] => {
             break;
         }
     }
-    // Вверх
     for (let i = index - ROW_SIZE; i >= 0; i -= ROW_SIZE) {
         const c = cells[i];
         if (c && c.status !== 'crossed') {
@@ -72,93 +71,168 @@ const findNeighbors = (cells: Cell[], index: number): number[] => {
     return neighbors;
 };
 
-// Хелперы для оценки хода
-const findPrevActive = (cells: Cell[], index: number): number | null => {
-    const cell = cells[index];
-    if (cell && cell.prev !== undefined && cell.prev !== null) return cell.prev;
-    for (let i = index - 1; i >= 0; i--) {
-        const c = cells[i];
-        if (c && c.status !== 'crossed') return i;
+// === Логика оценки хода (Эвристика) ===
+
+const evaluateMove = (cells: Cell[], idx1: number, idx2: number): number => {
+    const c1 = cells[idx1];
+    const c2 = cells[idx2];
+
+    // FIX: Проверка на существование
+    if (!c1 || !c2) return 0;
+
+    let score = 10;
+
+    const isVertical = (idx1 % 9) === (idx2 % 9);
+
+    if (isVertical) score += 100;
+    if (c1.value === c2.value) score += 15;
+    score -= (idx1 * 0.005);
+
+    return score;
+};
+
+// === Логика симуляции (Apply / Undo) ===
+
+const applyMove = (cells: Cell[], idx1: number, idx2: number): LinkChange[] => {
+    const changes: LinkChange[] = [];
+    const c1 = cells[idx1];
+    const c2 = cells[idx2];
+
+    // FIX: Проверка на существование
+    if (!c1 || !c2) return [];
+
+    // Временно зачеркиваем
+    c1.status = 'crossed';
+    c2.status = 'crossed';
+
+    // Обработка c1
+    if (c1.prev !== null && c1.prev !== undefined) {
+        const prevCell = cells[c1.prev];
+        if (prevCell) {
+            changes.push({ index: c1.prev, field: 'next', oldValue: prevCell.next });
+            prevCell.next = c1.next;
+        }
     }
-    return null;
-};
-
-const findNextActive = (cells: Cell[], index: number): number | null => {
-    const cell = cells[index];
-    if (cell && cell.next !== undefined && cell.next !== null) return cell.next;
-    for (let i = index + 1; i < cells.length; i++) {
-        const c = cells[i];
-        if (c && c.status !== 'crossed') return i;
+    if (c1.next !== null && c1.next !== undefined) {
+        const nextCell = cells[c1.next];
+        if (nextCell) {
+            changes.push({ index: c1.next, field: 'prev', oldValue: nextCell.prev });
+            nextCell.prev = c1.prev;
+        }
     }
-    return null;
+
+    // Обработка c2
+    if (c2.prev !== null && c2.prev !== undefined) {
+        const prevCell = cells[c2.prev];
+        if (prevCell) {
+            changes.push({ index: c2.prev, field: 'next', oldValue: prevCell.next });
+            prevCell.next = c2.next;
+        }
+    }
+    if (c2.next !== null && c2.next !== undefined) {
+        const nextCell = cells[c2.next];
+        if (nextCell) {
+            changes.push({ index: c2.next, field: 'prev', oldValue: nextCell.prev });
+            nextCell.prev = c2.prev;
+        }
+    }
+
+    return changes;
 };
 
-const checkValuesMatch = (c1: Cell, c2: Cell) => {
-    return c1.value === c2.value || c1.value + c2.value === 10;
+const undoMove = (cells: Cell[], idx1: number, idx2: number, changes: LinkChange[]) => {
+    // FIX: Безопасный доступ к ячейкам
+    if (cells[idx1]) cells[idx1].status = 'active';
+    if (cells[idx2]) cells[idx2].status = 'active';
+
+    for (let i = changes.length - 1; i >= 0; i--) {
+        const change = changes[i];
+        // FIX: Проверка change
+        if (!change) continue;
+
+        const cell = cells[change.index];
+        if (cell) {
+            // @ts-ignore
+            cell[change.field] = change.oldValue;
+        }
+    }
 };
 
-// === Основная тяжелая функция ===
-const findBestMove = (cells: Cell[]): [number, number] | null => {
+// === Рекурсивный поиск (Beam Search) ===
+
+interface Move {
+    idx1: number;
+    idx2: number;
+    score: number;
+}
+
+const findAllMoves = (cells: Cell[], limit: number = -1): Move[] => {
+    const moves: Move[] = [];
     const len = cells.length;
-    // Лимит поиска можно увеличить, так как мы в воркере и не блокируем UI
-    const searchLimit = len > 3000 ? 2500 : len;
-    const allMoves: { idx1: number, idx2: number, score: number }[] = [];
+    // Лимит итераций для очень больших полей
+    const iterLimit = len > 3000 ? 2500 : len;
 
-    for (let i = 0; i < searchLimit; i++) {
+    for (let i = 0; i < iterLimit; i++) {
         const currentCell = cells[i];
         if (!currentCell || currentCell.status === 'crossed') continue;
 
         const neighbors = findNeighbors(cells, i);
-
         for (const nIdx of neighbors) {
-            // Проверяем только nIdx > i, чтобы не дублировать пары
             if (nIdx > i && canMatch(cells, i, nIdx)) {
-                const neighborCell = cells[nIdx];
-                if (!neighborCell) continue;
-
-                // --- Подсчет очков (логика из старого useBot) ---
-                let score = 10;
-                const isVertical = (i % 9) === (nIdx % 9);
-
-                if (isVertical) score += 150; // Приоритет вертикальным, чтобы чистить ряды
-                if (currentCell.value === neighborCell.value) score += 20;
-
-                // Бонус за "цепную реакцию" (если удаление соединит одинаковые числа)
-                if (!isVertical) {
-                    const prev = findPrevActive(cells, i);
-                    const next = findNextActive(cells, nIdx);
-                    if (prev !== null && next !== null) {
-                        const cPrev = cells[prev];
-                        const cNext = cells[next];
-                        if (cPrev && cNext && checkValuesMatch(cPrev, cNext)) score += 500;
-                    }
-                }
-
-                // Штраф за позицию (чем дальше, тем меньше приоритет), чтобы бот шел сверху вниз
-                score -= (i * 0.001);
-
-                allMoves.push({ idx1: i, idx2: nIdx, score });
+                const score = evaluateMove(cells, i, nIdx);
+                moves.push({ idx1: i, idx2: nIdx, score });
             }
         }
     }
 
-    if (allMoves.length === 0) return null;
+    moves.sort((a, b) => b.score - a.score);
 
-    allMoves.sort((a, b) => b.score - a.score);
-
-    const bestMove = allMoves[0];
-    if (!bestMove) return null;
-
-    return [bestMove.idx1, bestMove.idx2];
+    if (limit > 0 && moves.length > limit) {
+        return moves.slice(0, limit);
+    }
+    return moves;
 };
 
-// === Обработка сообщений ===
+const searchBestMove = (cells: Cell[], depth: number): { score: number, move: [number, number] | null } => {
+    // Берем TOP-5 лучших кандидатов
+    const candidates = findAllMoves(cells, 5);
+
+    if (candidates.length === 0) {
+        return { score: 0, move: null };
+    }
+
+    let bestTotalScore = -Infinity;
+    let bestMove: [number, number] | null = null;
+
+    for (const move of candidates) {
+        let currentTotal = move.score;
+
+        if (depth > 0) {
+            const changes = applyMove(cells, move.idx1, move.idx2);
+
+            const nextResult = searchBestMove(cells, depth - 1);
+
+            currentTotal += (nextResult.score * 0.5);
+
+            undoMove(cells, move.idx1, move.idx2, changes);
+        }
+
+        if (currentTotal > bestTotalScore) {
+            bestTotalScore = currentTotal;
+            bestMove = [move.idx1, move.idx2];
+        }
+    }
+
+    return { score: bestTotalScore, move: bestMove };
+};
+
+// === Точка входа ===
+
 self.onmessage = (e: MessageEvent) => {
     const { type, cells } = e.data;
 
     if (type === 'find') {
-        const move = findBestMove(cells);
-        // Отправляем результат обратно
-        self.postMessage({ type: 'moveFound', move });
+        const result = searchBestMove(cells, 1);
+        self.postMessage({ type: 'moveFound', move: result.move });
     }
 };
