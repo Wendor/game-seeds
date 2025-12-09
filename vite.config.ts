@@ -4,8 +4,17 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // Генерируем метку времени сборки
 const now = new Date();
-// Форматируем в "DD.MM.YYYY HH:mm"
-const buildVersion = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+// Формируем компоненты даты
+const year = now.getFullYear().toString().slice(-2); // 24
+const month = (now.getMonth() + 1).toString().padStart(2, '0'); // 12
+const day = now.getDate().toString().padStart(2, '0'); // 09
+const hour = now.getHours().toString().padStart(2, '0'); // 10
+const minute = now.getMinutes().toString().padStart(2, '0'); // 26
+const second = now.getSeconds().toString().padStart(2, '0'); // 00
+
+// Собираем в формат YYMMDD-HHmmss
+const buildVersion = `${year}${month}${day}-${hour}${minute}${second}`;
 
 export default defineConfig({
   base: './',
