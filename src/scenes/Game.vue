@@ -254,8 +254,6 @@ const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints(
 const { isBotActive, toggleBot, stopBot } = useBot({
     cells,
     gameActions: { 
-      canMatch, 
-      findNeighbors, 
       addLines: () => addLines(props.mode), 
       cleanEmptyRows,
       updateLinksAfterCross
