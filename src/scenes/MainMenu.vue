@@ -58,6 +58,9 @@
         </button>
       </div>
     </div>
+
+    <div class="app-version">build {{ appVersion }}</div>
+
   </section>
 </template>
 
@@ -68,6 +71,8 @@ import { toggleMute, getMuteState } from '../utils/audio';
 import { useI18n } from '../composables/useI18n';
 
 const { t, toggleLanguage, currentLang } = useI18n();
+
+const appVersion = __APP_VERSION__;
 
 defineProps<{ isDark: boolean }>();
 
@@ -116,7 +121,6 @@ onMounted(() => {
 
 // PWA
 const canInstall = ref(false);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let deferredPrompt: any = null;
 const handleInstallPrompt = (e: Event) => { e.preventDefault(); deferredPrompt = e; canInstall.value = true; };
 const installApp = async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') { deferredPrompt = null; canInstall.value = false; } };
@@ -157,7 +161,7 @@ onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handle
 .game-title { 
   font-size: 3rem; 
   font-weight: 800; 
-  color: rgb(var(--rgb-blue));
+  color: rgb(var(--rgb-blue)); 
   margin: 0; 
   letter-spacing: -1px; 
 }
@@ -199,6 +203,17 @@ onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handle
 .btn-icon-svg {
   margin-right: 8px;
   margin-left: -4px; 
+}
+
+/* Стиль версии */
+.app-version {
+  position: absolute;
+  bottom: 10px;
+  right: 15px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+  font-family: monospace;
 }
 
 @media (min-width: 768px) {

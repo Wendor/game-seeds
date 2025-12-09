@@ -2,25 +2,30 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Генерируем метку времени сборки
+const now = new Date();
+// Форматируем в "DD.MM.YYYY HH:mm"
+const buildVersion = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
 export default defineConfig({
   base: './',
+  define: {
+    '__APP_VERSION__': JSON.stringify(buildVersion),
+  },
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'autoUpdate', // Автоматическое обновление кэша
+      registerType: 'autoUpdate',
       includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
-
-      // Настройки манифеста (как приложение выглядит в системе)
       manifest: {
         name: 'Игра Семечки (19)',
         short_name: 'Семечки',
         description: 'Классическая логическая игра с цифрами',
         theme_color: '#ffffff',
         background_color: '#ffffff',
-        display: 'standalone', // Убирает интерфейс браузера
+        display: 'standalone',
         start_url: './',
-        orientation: 'portrait', // Фиксируем вертикальную ориентацию
-
+        orientation: 'portrait',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -36,12 +41,10 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable' // Для иконок на Android (круглых/квадратных)
+            purpose: 'any maskable'
           }
         ]
       },
-
-      // Настройки кэширования (офлайн режим)
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mp3}']
       }
