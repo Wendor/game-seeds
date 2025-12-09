@@ -101,7 +101,7 @@ const checkValuesMatch = (c1: Cell, c2: Cell) => {
 const findBestMove = (cells: Cell[]): [number, number] | null => {
     const len = cells.length;
     // Лимит поиска можно увеличить, так как мы в воркере и не блокируем UI
-    const searchLimit = len > 5000 ? 4000 : len;
+    const searchLimit = len > 3000 ? 2500 : len;
     const allMoves: { idx1: number, idx2: number, score: number }[] = [];
 
     for (let i = 0; i < searchLimit; i++) {
