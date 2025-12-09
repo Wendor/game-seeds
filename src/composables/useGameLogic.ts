@@ -236,6 +236,7 @@ export function useGameLogic() {
         findHint,
         cleanEmptyRows,
         findNeighbors,
-        updateLinksAfterCross
+        updateLinksAfterCross,
+        rebuildLinks,
     };
 }

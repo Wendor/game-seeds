@@ -137,7 +137,8 @@ const {
   findHint, 
   cleanEmptyRows, 
   findNeighbors,
-  updateLinksAfterCross
+  updateLinksAfterCross,
+  rebuildLinks,
 } = useGameLogic();
 
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
@@ -313,6 +314,7 @@ const performUndo = () => {
   if (undo()) {
     playSound('undo');
     haptic.medium();
+    rebuildLinks();
     resetSelection();
     clearHintUI();
     resetHintIndex();
