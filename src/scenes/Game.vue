@@ -21,7 +21,8 @@
     </header>
 
     <main class="grid-container" ref="gridContainerRef" @scroll="handleScroll">
-      <div class="ghost-row sticky-top" ref="topGhostRef" :class="{ visible: hasTopGhosts }">
+      
+      <div id="ghost-top-sentinel" class="ghost-row sticky-top" :class="{ visible: hasTopGhosts }">
         <div 
           v-for="(item, col) in topGhosts" 
           :key="'top-' + col" 
@@ -37,19 +38,31 @@
         </div>
       </div>
 
-      <TransitionGroup name="list" tag="div" class="grid" ref="gridRef">
-        <div 
-          v-for="(cell, index) in cells" :key="cell.id"
-          class="cell"
-          :data-index="index"
-          :class="getCellClasses(cell, index)"
-          @click="handleCellClick(index)"
-        >
-          {{ cell.value }}
-        </div>
-      </TransitionGroup>
+      <div class="virtual-spacer" :style="{ height: spacerTop + 'px' }"></div>
       
-      <div class="ghost-row sticky-bottom" ref="bottomGhostRef" :class="{ visible: hasBottomGhosts }">
+      <div class="grid-virtual" ref="gridRef">
+        <div 
+          v-for="row in visibleRows" 
+          :key="row.rowIndex"
+          class="virtual-row"
+          :data-row-index="row.rowIndex" 
+        >
+          <div 
+            v-for="cellData in row.items" 
+            :key="cellData.cell.id"
+            class="cell"
+            :data-index="cellData.originalIndex"
+            :class="getCellClasses(cellData.cell, cellData.originalIndex)"
+            @click="handleCellClick(cellData.originalIndex)"
+          >
+            {{ cellData.cell.value }}
+          </div>
+        </div>
+      </div>
+
+      <div class="virtual-spacer" :style="{ height: spacerBottom + 'px' }"></div>
+      
+      <div id="ghost-bottom-sentinel" class="ghost-row sticky-bottom" :class="{ visible: hasBottomGhosts }">
         <div 
           v-for="(item, col) in bottomGhosts" 
           :key="'bot-' + col" 
@@ -70,30 +83,19 @@
         <div class="final-time">{{ t('game.time', { time: formattedTime }) }}</div>
         <div class="win-actions">
           <button @click="shareResult" class="btn btn-success btn-lg" style="gap: 8px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-              <polyline points="16 6 12 2 8 6"></polyline>
-              <line x1="12" y1="2" x2="12" y2="15"></line>
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
             {{ t('game.share') }}
           </button>
-          
           <button @click="$emit('back')" class="btn btn-primary btn-lg">{{ t('game.toMenu') }}</button>
         </div>
       </div>
     </main>
 
     <footer class="controls">
-        <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver || isBotActive" :title="t('game.undo')">⤺</button>
+      <button @click="performUndo" class="btn btn-secondary btn-icon icon-text" :disabled="!hasHistory() || isGameOver || isBotActive" :title="t('game.undo')">⤺</button>
       <button @click="showNextHint" class="btn btn-secondary btn-icon icon-text" :disabled="isGameOver || isBotActive" :title="t('game.hint')">⚐</button>
       <button @click="performAddLines" :disabled="isGameOver || isBotActive" class="btn btn-primary btn-lg">{{ t('game.add') }}</button>
-      <button 
-        @click="handleToggleBot" 
-        class="btn btn-icon" 
-        :class="isBotActive ? 'btn-danger' : 'btn-secondary'"
-        :disabled="isGameOver"
-        :title="t('game.auto')"
-      >
+      <button @click="handleToggleBot" class="btn btn-icon" :class="isBotActive ? 'btn-danger' : 'btn-secondary'" :disabled="isGameOver" :title="t('game.auto')">
         <svg v-if="isBotActive" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
         <svg v-else xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2" /><circle cx="12" cy="5" r="2" /><path d="M12 7v4" /><line x1="8" y1="16" x2="8" y2="16" /><line x1="16" y1="16" x2="16" y2="16" /></svg>
       </button>
@@ -103,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRaw } from 'vue';
 import type { GameMode, GameRecord, Cell } from '../types';
 import { GAME_CONFIG } from '../config';
 import { useGameLogic } from '../composables/useGameLogic';
@@ -127,18 +129,10 @@ const { incrementGamesStarted } = useStatistics();
 const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
 const emit = defineEmits(['back', 'restart']);
 
+// --- LOGIC ---
 const { 
-  cells, 
-  nextId, 
-  generateCells, 
-  restoreCells, 
-  canMatch, 
-  addLines, 
-  findHint, 
-  cleanEmptyRows, 
-  findNeighbors,
-  updateLinksAfterCross,
-  rebuildLinks,
+  cells, nextId, generateCells, restoreCells, canMatch, addLines, 
+  findHint, cleanEmptyRows, findNeighbors, updateLinksAfterCross, rebuildLinks,
 } = useGameLogic();
 
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
@@ -149,104 +143,231 @@ const showRestartModal = ref(false);
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => nextId.value > 0 && activeCount.value === 0);
 
-type GhostItem = { value: number; index: number } | null;
+// --- VIRTUAL SCROLL CONFIG ---
 const gridContainerRef = ref<HTMLElement | null>(null);
 const gridRef = ref<HTMLElement | null>(null);
-const topGhostRef = ref<HTMLElement | null>(null);
-const bottomGhostRef = ref<HTMLElement | null>(null);
+const scrollTop = ref(0);
+const containerHeight = ref(800);
+
+const rowHeight = ref(50);
+const headerHeight = ref(54); 
+const bottomBarHeight = ref(54);
+const BUFFER = 6; 
+
+const measureDimensions = () => {
+  // 1. Замеряем панели (Sentinel)
+  const topSentinel = document.getElementById('ghost-top-sentinel');
+  const bottomSentinel = document.getElementById('ghost-bottom-sentinel');
+  
+  if (topSentinel) headerHeight.value = topSentinel.offsetHeight;
+  if (bottomSentinel) bottomBarHeight.value = bottomSentinel.offsetHeight;
+
+  let realRowHeight = 0;
+  
+  if (gridRef.value && gridRef.value.firstElementChild) {
+    // Если есть отрендеренный ряд
+    const firstRow = gridRef.value.firstElementChild as HTMLElement;
+    realRowHeight = firstRow.offsetHeight;
+  } else if (topSentinel) {
+    // Если нет рядов (пусто), берем высоту сентинела (он такой же по структуре)
+    realRowHeight = topSentinel.offsetHeight;
+  }
+
+  if (realRowHeight > 0 && Math.abs(realRowHeight - rowHeight.value) > 0.5) {
+    rowHeight.value = realRowHeight;
+    // Если хедер сильно отличается, тоже подгоняем (обычно они равны)
+    if (headerHeight.value === 0) headerHeight.value = realRowHeight;
+  }
+};
+
+const chunkedRows = computed(() => {
+  const result = [];
+  const rawCells = cells.value;
+  for (let i = 0; i < rawCells.length; i += 9) {
+    result.push({ 
+      items: rawCells.slice(i, i + 9).map((c, localIdx) => ({ cell: c, originalIndex: i + localIdx })), 
+      rowIndex: i / 9 
+    });
+  }
+  return result;
+});
+
+const visibleRange = computed(() => {
+  if (rowHeight.value === 0) return { start: 0, end: 10 };
+  
+  // Контент начинается ПОСЛЕ верхней панели
+  const scrolledContent = Math.max(0, scrollTop.value - headerHeight.value);
+  const start = Math.floor(scrolledContent / rowHeight.value);
+  const visibleCount = Math.ceil(containerHeight.value / rowHeight.value);
+  
+  return {
+    start: Math.max(0, start - BUFFER),
+    end: Math.min(chunkedRows.value.length, start + visibleCount + BUFFER)
+  };
+});
+
+const visibleRows = computed(() => {
+  const { start, end } = visibleRange.value;
+  return chunkedRows.value.slice(start, end);
+});
+
+const spacerTop = computed(() => visibleRange.value.start * rowHeight.value);
+const spacerBottom = computed(() => (chunkedRows.value.length - visibleRange.value.end) * rowHeight.value);
+
+const handleScroll = (e: Event) => {
+  scrollTop.value = (e.target as HTMLElement).scrollTop;
+};
+
+// --- GHOSTS LOGIC ---
+type GhostItem = { value: number; index: number } | null;
 const topGhosts = ref<GhostItem[]>(Array(9).fill(null));
 const bottomGhosts = ref<GhostItem[]>(Array(9).fill(null));
 const hasTopGhosts = computed(() => topGhosts.value.some(v => v !== null));
 const hasBottomGhosts = computed(() => bottomGhosts.value.some(v => v !== null));
 
-const getCellIndexAtPoint = (x: number, y: number): number | null => {
-  const elements = document.elementsFromPoint(x, y);
-  for (const el of elements) {
-    if (el.classList.contains('cell') && el.hasAttribute('data-index')) {
-      return parseInt(el.getAttribute('data-index')!, 10);
-    }
-  }
-  return null;
-};
-
 const updateGhosts = () => {
-    const gridEl = (gridRef.value as any)?.$el || gridRef.value
-    if (!gridContainerRef.value || !gridEl || !topGhostRef.value || !bottomGhostRef.value || cells.value.length === 0) return;
+    if (cells.value.length === 0 || rowHeight.value === 0) return;
 
-    const topPanelRect = topGhostRef.value.getBoundingClientRect();
-    const bottomPanelRect = bottomGhostRef.value.getBoundingClientRect();
-    const gridRect = gridEl.getBoundingClientRect();
-
-    if (gridRect.top >= topPanelRect.bottom - 10 && gridRect.bottom <= bottomPanelRect.top + 10) {
-        topGhosts.value.fill(null);
-        bottomGhosts.value.fill(null);
-        return;
-    }
-
-    const firstCell = gridEl.children[0] as HTMLElement;
-    const cellWidth = firstCell ? firstCell.offsetWidth : 50;
-    const checkX = gridRect.left + (cellWidth / 2);
-
-    const checkTopY = topPanelRect.bottom - 5;
-    let topIndex = getCellIndexAtPoint(checkX, checkTopY);
-    if (topIndex === null) topIndex = getCellIndexAtPoint(checkX, checkTopY - 15);
+    const offsetTop = rowHeight.value;    
+    // Координата внутри сетки (вычитаем headerHeight!)
+    const gridScrollY = scrollTop.value - headerHeight.value;
+    // Индекс ряда, который сейчас уходит вверх
+    const topRowIndex = Math.floor((gridScrollY + offsetTop) / rowHeight.value) + 1;
 
     for (let col = 0; col < 9; col++) {
         let foundItem: GhostItem = null;
-        if (topIndex !== null) {
-            const startIdx = (Math.floor(topIndex / 9) * 9) + col;
-            for (let i = startIdx; i >= 0; i -= 9) {
-                if (i >= cells.value.length) continue;
-                const cell = cells.value[i];
-                if (cell && cell.status !== 'crossed') {
-                    foundItem = { value: cell.value, index: i };
-                    break;
-                }
+        const startIdx = ((topRowIndex - 1) * 9) + col;
+        for (let i = startIdx; i >= 0; i -= 9) {
+            if (i >= cells.value.length) continue;
+            const cell = cells.value[i];
+            if (cell && cell.status !== 'crossed' && !cell.isDeleting) {
+                foundItem = { value: cell.value, index: i };
+                break;
             }
         }
         topGhosts.value[col] = foundItem;
     }
 
-    const checkBottomY = bottomPanelRect.top + 5;
-    let bottomIndex = getCellIndexAtPoint(checkX, checkBottomY);
-    if (bottomIndex === null) bottomIndex = getCellIndexAtPoint(checkX, checkBottomY + 15);
-
+    const viewportBottomInGrid = (scrollTop.value + containerHeight.value) - bottomBarHeight.value - headerHeight.value;
+    
+    const offsetBottom = rowHeight.value * 0.2;
+    
+    const bottomRowIndex = Math.floor((viewportBottomInGrid - offsetBottom) / rowHeight.value) - 1;
+    
     for (let col = 0; col < 9; col++) {
         let foundItem: GhostItem = null;
-        if (bottomIndex !== null) {
-            const startIdx = (Math.floor(bottomIndex / 9) * 9) + col;
-            for (let i = startIdx; i < cells.value.length; i += 9) {
-                if (i < 0) continue;
-                const cell = cells.value[i];
-                if (cell && cell.status !== 'crossed') {
-                    foundItem = { value: cell.value, index: i };
-                    break;
-                }
+        const startIdx = ((bottomRowIndex + 1) * 9) + col;
+        for (let i = startIdx; i < cells.value.length; i += 9) {
+            if (i < 0) continue;
+            const cell = cells.value[i];
+            if (cell && cell.status !== 'crossed' && !cell.isDeleting) {
+                foundItem = { value: cell.value, index: i };
+                break;
             }
         }
         bottomGhosts.value[col] = foundItem;
     }
 };
 
-const handleScroll = () => requestAnimationFrame(updateGhosts);
-watch(cells, () => nextTick(updateGhosts), { deep: true });
+watch([scrollTop, cells], updateGhosts, { flush: 'post' });
 
+let resizeObserver: ResizeObserver | null = null;
+
+const animateAndClean = (): number | void => {
+    const ROW_SIZE = 9;
+    const indicesToDelete: number[] = [];
+    for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
+        const chunk = cells.value.slice(i, i + ROW_SIZE);
+        if (chunk.length === ROW_SIZE && chunk.every(c => c.status === 'crossed')) {
+            for (let j = 0; j < 9; j++) indicesToDelete.push(i + j);
+        }
+    }
+
+    if (indicesToDelete.length > 0) {
+        indicesToDelete.forEach(idx => {
+            if (cells.value[idx]) cells.value[idx].isDeleting = true;
+        });
+        updateGhosts();
+
+        setTimeout(() => {
+            recordClean();
+            const removed = cleanEmptyRows();
+            if (typeof removed === 'number' && removed > 0) {
+                showToast(removed === 1 ? t('game.cleared') : t('game.clearedMulti', { n: removed }));
+                playSound('add');
+            }
+            // После удаления высота скролла меняется, призраки должны обновиться
+            updateGhosts();
+        }, 300);
+        return; 
+    }
+    return 0;
+};
+
+const addLinesWithAnimation = (): number => {
+    if (cells.value.length >= GAME_CONFIG.MAX_CELLS) {
+        showToast(t('game.fullLines'));
+        haptic.medium();
+        return 0;
+    }
+
+    const oldLength = cells.value.length;
+    const count = addLines(props.mode);
+    
+    if (count > 0) {
+      for (let i = oldLength; i < cells.value.length; i++) {
+          cells.value[i]!.isNew = true;
+      }
+        recordAdd(count);
+        playSound('add');
+        haptic.impact();
+        
+        clearHintUI();
+        resetSelection();
+        resetHintIndex();
+
+        nextTick(() => {
+            measureDimensions();
+            
+            const container = gridContainerRef.value;
+            if (container) {
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            }
+            updateGhosts();
+        });
+
+        setTimeout(() => {
+            for (let i = oldLength; i < cells.value.length; i++) {
+              if (cells.value[i]) {
+                delete cells.value[i]?.isNew;
+              }
+            }
+        }, 500);
+    }
+    return count;
+};
+
+// --- CONNECTORS ---
 const isNeighbor = (index: number) => neighborIndices.value.includes(index);
 const isMatchable = (index: number) => {
-  return selectedIndex.value !== null && 
-         neighborIndices.value.includes(index) && 
-         canMatch(selectedIndex.value, index);
+  return selectedIndex.value !== null && neighborIndices.value.includes(index) && canMatch(selectedIndex.value, index);
 };
 
 const handleGhostClick = (item: GhostItem) => {
   if (item && item.index !== undefined) {
-    handleCellClick(item.index);
+    scrollToCell(item.index);
+    setTimeout(() => handleCellClick(item.index), 150);
   }
 };
 
 const scrollToCell = (index: number) => {
-    const el = document.querySelectorAll('.grid .cell')[index];
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const container = gridContainerRef.value;
+    if (container && rowHeight.value > 0) {
+        const rowIndex = Math.floor(index / 9);
+        let targetPos = (rowIndex * rowHeight.value) + headerHeight.value - (containerHeight.value / 2) + (rowHeight.value / 2);
+        targetPos = Math.max(0, targetPos);
+        container.scrollTo({ top: targetPos, behavior: 'smooth' });
+    }
 };
 
 const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints({ findHint, scrollToCell, showToast });
@@ -254,8 +375,8 @@ const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints(
 const { isBotActive, toggleBot, stopBot } = useBot({
     cells,
     gameActions: { 
-      addLines: () => addLines(props.mode), 
-      cleanEmptyRows,
+      addLines: addLinesWithAnimation, 
+      cleanEmptyRows: animateAndClean,
       updateLinksAfterCross
     },
     historyActions: { recordMatch, recordAdd, recordClean, popHistory },
@@ -263,14 +384,21 @@ const { isBotActive, toggleBot, stopBot } = useBot({
     gameState: { isGameOver }
 });
 
+const performAddLines = () => {
+    const count = addLinesWithAnimation();
+    if (count > 0) showToast(t('game.added', { n: count }));
+};
+
+const playerGameActions = { 
+    canMatch, 
+    findNeighbors, 
+    cleanEmptyRows: animateAndClean,
+    updateLinksAfterCross 
+};
+
 const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = usePlayer({
     cells,
-    gameActions: { 
-      canMatch, 
-      findNeighbors, 
-      cleanEmptyRows,
-      updateLinksAfterCross
-    },
+    gameActions: playerGameActions,
     historyActions: { recordMatch, recordClean, popHistory },
     uiActions: { playSound, showToast, haptic, clearHintUI },
     state: { isBotActive }
@@ -297,12 +425,7 @@ watch(isGameOver, (val) => {
 
 const handleToggleBot = () => {
     if (!isBotActive.value) {
-        if (selectedIndex.value !== null) {
-            const cell = cells.value[selectedIndex.value];
-            if (cell) cell.status = 'active';
-            selectedIndex.value = null;
-            neighborIndices.value = [];
-        }
+        resetSelection();
         clearHintUI();
     }
     toggleBot();
@@ -320,31 +443,10 @@ const performUndo = () => {
   }
 };
 
-const performAddLines = () => {
-  if (cells.value.length >= GAME_CONFIG.MAX_CELLS) {
-    showToast(t('game.fullLines'));
-    haptic.medium();
-    return;
-  }
-  const count = addLines(props.mode);
-  if (count > 0) recordAdd(count);
-  playSound('add');
-  haptic.impact();
-  clearHintUI();
-  resetSelection();
-  resetHintIndex();
-  setTimeout(() => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    updateGhosts();
-  }, 100);
-  showToast(t('game.added', { n: count }));
-};
-
 const initGame = () => {
   resetSelection();
   clearHintUI();
   clearHistory();
-  
   if (props.resume) {
     const parsed = load();
     if (parsed) {
@@ -355,18 +457,17 @@ const initGame = () => {
             parsed.history.forEach((h: any) => history.value.push(h));
         }
         startTimer();
-        nextTick(updateGhosts);
+        // Ждем рендера, чтобы замерить высоту реальной ячейки
+        nextTick(() => { measureDimensions(); updateGhosts(); });
         return;
     }
   }
-  
   incrementGamesStarted(props.mode);
-  
   generateCells(props.mode);
   resetTimer(0);
   clearSave();
   startTimer();
-  nextTick(updateGhosts);
+  nextTick(() => { measureDimensions(); updateGhosts(); });
 };
 
 const confirmRestart = () => {
@@ -376,17 +477,6 @@ const confirmRestart = () => {
   emit('restart');
   showRestartModal.value = false;
 };
-
-onMounted(() => {
-  initGame();
-  window.addEventListener('resize', updateGhosts);
-});
-onUnmounted(() => {
-  stopTimer();
-  stopBot();
-  window.removeEventListener('resize', updateGhosts);
-  if (!isGameOver.value) save(props.mode);
-});
 
 const getGroupClass = (val: number) => {
   if (val === 1 || val === 9) return 'cell-group-1';
@@ -402,20 +492,16 @@ const getCellClasses = (cell: Cell, index: number) => {
     'crossed': cell.status === 'crossed',
     'selected': cell.status === 'selected',
     'active': cell.status === 'active',
+    'deleting': !!cell.isDeleting,
+    'new-cell': !!cell.isNew
   };
-
   if (cell.status !== 'crossed') {
     const groupClass = getGroupClass(cell.value);
     if (groupClass) classes[groupClass] = true;
   }
-
-  if (isBotActive.value) {
-    return classes;
-  }
-
+  if (isBotActive.value) return classes;
   const isNeighborIndex = neighborIndices.value.includes(index);
   const isMatchable = isNeighborIndex && selectedIndex.value !== null && canMatch(selectedIndex.value, index);
-
   return {
     ...classes,
     'hint': hintIndices.value.includes(index),
@@ -428,18 +514,61 @@ const shareResult = async () => {
   const url = window.location.href;
   const modeName = t(`stats.${props.mode}`);
   const baseText = t('game.shareText', { mode: modeName, time: formattedTime.value });
-  
   if (navigator.share) {
-    try { 
-      await navigator.share({ title: 'Seeds', text: baseText, url }); 
-    } catch {}
+    try { await navigator.share({ title: 'Seeds', text: baseText, url }); } catch {}
   } else {
     await navigator.clipboard.writeText(`${baseText}\n${url}`); 
     showToast(t('game.copied'));
   }
 };
+
+onMounted(() => {
+  initGame();
+  
+  if (gridContainerRef.value) {
+    containerHeight.value = gridContainerRef.value.clientHeight;
+    
+    resizeObserver = new ResizeObserver(() => {
+      if (gridContainerRef.value) {
+        containerHeight.value = gridContainerRef.value.clientHeight;
+        // При ресайзе всегда перемеряем
+        measureDimensions();
+        updateGhosts();
+      }
+    });
+    resizeObserver.observe(gridContainerRef.value);
+    
+    // Запускаем замер через небольшую паузу, чтобы стили применились
+    setTimeout(measureDimensions, 200);
+  }
+});
+
+onUnmounted(() => {
+  stopTimer();
+  stopBot();
+  if (resizeObserver) resizeObserver.disconnect();
+  if (!isGameOver.value) save(props.mode);
+});
 </script>
 
 <style scoped>
-/* Стили находятся в src/assets/game.css */
+.grid-virtual {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+}
+.virtual-row {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+.virtual-spacer {
+    width: 100%;
+    flex-shrink: 0; 
+}
+@media (min-width: 768px) {
+  .grid-virtual { max-width: 600px; }
+  .virtual-row { gap: 8px; }
+}
 </style>

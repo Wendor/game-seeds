@@ -98,16 +98,20 @@ body.dark-mode .timer.finished {
     position: relative;
     -webkit-overflow-scrolling: touch;
     content-visibility: auto;
+    gap: 0;
 }
 
+/* Общие стили сетки */
 .grid,
+.virtual-row,
 .ghost-row {
     display: grid;
     grid-template-columns: repeat(9, 1fr);
     gap: 4px;
     width: 100%;
     max-width: 500px;
-    margin: 4px 0;
+    margin: 0;
+    padding-bottom: 4px;
 }
 
 .grid {
@@ -214,25 +218,31 @@ body.dark-mode .cell[class*="cell-group-"] {
     border-color: rgba(var(--group-color), 0.3);
 }
 
-/* --- АНИМАЦИИ СПИСКА (VUE TRANSITION GROUP) --- */
+/* --- АНИМАЦИИ --- */
 
-.list-enter-active {
-    animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 10;
-}
-
-.list-leave-active {
-    transition: all 0.4s ease;
-    opacity: 0;
+/* Анимация удаления */
+.cell.deleting {
     transform: scale(0);
-    margin: 0;
-    padding: 0;
-    /* Важно для плавной анимации удаления */
-    position: absolute;
+    opacity: 0;
+    transition: transform 0.3s ease-in, opacity 0.3s ease-in;
 }
 
-.list-move {
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.5, 1);
+/* Анимация появления */
+.cell.new-cell {
+    /*animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;*/
+    animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* --- СПЕЦ. СОСТОЯНИЯ (Приоритет !important) --- */
@@ -377,18 +387,6 @@ body.dark-mode .ghost-cell.is-matchable {
     }
 }
 
-@keyframes popIn {
-    0% {
-        opacity: 0;
-        transform: scale(0.5);
-    }
-
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
 @keyframes pulse {
     0% {
         transform: scale(1);
@@ -437,11 +435,43 @@ body.dark-mode .ghost-cell.is-matchable {
     font-weight: 600;
 }
 
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    line-height: 1;
+    padding-bottom: 6px;
+    padding-top: 6px;
+}
+
+.back-arrow {
+    font-size: 1.1em;
+}
+
+/* Специфичные стили для виртуального скролла */
+.grid-virtual {
+    display: block;
+    width: 100%;
+    max-width: 500px;
+}
+
+.virtual-spacer {
+    width: 100%;
+    flex-shrink: 0;
+}
+
 @media (min-width: 768px) {
 
+    /* Стили для десктопа/планшета */
     .grid,
+    .virtual-row,
     .ghost-row {
         gap: 8px;
+        max-width: 600px;
+    }
+
+    .grid-virtual {
         max-width: 600px;
     }
 
@@ -460,18 +490,4 @@ body.dark-mode .ghost-cell.is-matchable {
     .controls {
         padding-bottom: 12px;
     }
-}
-
-.back-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    line-height: 1;
-    padding-bottom: 6px;
-    padding-top: 6px;
-}
-
-.back-arrow {
-    font-size: 1.1em;
 }

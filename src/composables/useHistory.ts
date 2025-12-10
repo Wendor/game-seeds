@@ -36,6 +36,9 @@ export function useHistory(cells: Ref<Cell[]>) {
                 lastAction.changes.forEach(({ index, prevStatus }) => {
                     if (cells.value[index]) {
                         cells.value[index].status = prevStatus === 'selected' ? 'active' : prevStatus;
+                        // На всякий случай чистим флаги и здесь
+                        delete cells.value[index].isDeleting;
+                        delete cells.value[index].isNew;
                     }
                 });
                 break;
@@ -47,7 +50,14 @@ export function useHistory(cells: Ref<Cell[]>) {
                 break;
 
             case 'clean':
+                // Восстанавливаем состояние из снимка
                 cells.value = lastAction.previousState;
+
+                // === FIX: Очищаем флаги анимации, попавшие в снимок ===
+                cells.value.forEach(cell => {
+                    if (cell.isDeleting) delete cell.isDeleting;
+                    if (cell.isNew) delete cell.isNew;
+                });
                 break;
         }
         return true;

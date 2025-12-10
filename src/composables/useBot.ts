@@ -1,5 +1,4 @@
-// src/composables/useBot.ts
-import { ref, type Ref, onUnmounted } from 'vue';
+import { ref, type Ref, onUnmounted, toRaw } from 'vue';
 import type { Cell } from '../types';
 import { useI18n } from './useI18n';
 import BotWorker from '../workers/bot.worker?worker';
@@ -8,7 +7,7 @@ interface BotDependencies {
     cells: Ref<Cell[]>;
     gameActions: {
         addLines: () => number;
-        cleanEmptyRows: () => number;
+        cleanEmptyRows: () => number | void; // <--- FIX
         updateLinksAfterCross: (idx1: number, idx2: number) => void;
     };
     historyActions: {
@@ -40,7 +39,7 @@ export function useBot(deps: BotDependencies) {
             worker = new BotWorker();
             worker.onmessage = handleWorkerMessage;
         }
-        return worker; // Возвращаем инстанс
+        return worker;
     };
 
     const terminateWorker = () => {
@@ -64,15 +63,12 @@ export function useBot(deps: BotDependencies) {
             return;
         }
 
-        const plainCells = JSON.parse(JSON.stringify(cells.value));
-
-        // Гарантируем инициализацию перед отправкой
+        const plainCells = toRaw(cells.value).map(c => toRaw(c));
         const activeWorker = initWorker();
         activeWorker.postMessage({ type: 'find', cells: plainCells });
     };
 
     const handleWorkerMessage = async (e: MessageEvent) => {
-        // ... (код обработчика без изменений, он был корректен)
         const { type, move } = e.data;
 
         if (type === 'moveFound') {
@@ -94,8 +90,15 @@ export function useBot(deps: BotDependencies) {
 
                 gameActions.updateLinksAfterCross(idx1, idx2);
                 historyActions.recordClean();
+                // Так как бот использует анимированную очистку (которая возвращает void),
+                // мы просто запускаем её. Если это обычная очистка, она вернет number.
                 const removed = gameActions.cleanEmptyRows();
-                if (removed === 0) historyActions.popHistory();
+
+                // Если функция вернула 0 (синхронно ничего не удалила), убираем запись истории.
+                // Если вернула void (асинхронно), то она сама разберется с историей.
+                if (typeof removed === 'number' && removed === 0) {
+                    historyActions.popHistory();
+                }
 
                 botLoopTimeout = setTimeout(requestMove, 10);
             } else {
@@ -108,9 +111,9 @@ export function useBot(deps: BotDependencies) {
                 await new Promise(r => setTimeout(r, 300));
                 if (!isBotActive.value) return;
 
-                const count = gameActions.addLines();
+                const count = gameActions.addLines(); // Анимированное добавление
                 if (count > 0) historyActions.recordAdd(count);
-                uiActions.playSound('add');
+                // Звук уже есть внутри addLinesWithAnimation
 
                 botLoopTimeout = setTimeout(requestMove, 500);
             }
@@ -122,7 +125,6 @@ export function useBot(deps: BotDependencies) {
             stopBot();
         } else {
             isBotActive.value = true;
-            // Инициализация при старте
             initWorker();
             requestMove();
         }

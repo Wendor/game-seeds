@@ -1,6 +1,3 @@
-// src/types.ts
-
-// Добавляем 'easy' в список режимов
 export type GameMode = 'classic' | 'random' | 'easy';
 
 export type CellStatus = 'active' | 'selected' | 'crossed';
@@ -11,6 +8,8 @@ export interface Cell {
     status: CellStatus;
     prev?: number | null; // Сосед слева/сверху (по змейке)
     next?: number | null; // Сосед справа/снизу (по змейке)
+    isDeleting?: boolean; // Анимация удаления
+    isNew?: boolean;      // Анимация появления
 }
 
 export interface GameRecord {
