@@ -8,8 +8,10 @@ export interface Cell {
     status: CellStatus;
     prev?: number | null; // Сосед слева/сверху (по змейке)
     next?: number | null; // Сосед справа/снизу (по змейке)
-    isDeleting?: boolean; // Анимация удаления
-    isNew?: boolean;      // Анимация появления
+    up?: number | null;   // <--- Сосед физически сверху (по колонке)
+    down?: number | null; // <--- Сосед физически снизу (по колонке)
+    isDeleting?: boolean;
+    isNew?: boolean;
 }
 
 export interface GameRecord {

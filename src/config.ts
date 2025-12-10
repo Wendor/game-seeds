@@ -1,6 +1,6 @@
 export const GAME_CONFIG = {
     // Лимиты
-    MAX_CELLS: 4000,
+    MAX_CELLS: 40000,
     BOT_SEARCH_LIMIT: 2000,
 
     // Тайминги (мс)

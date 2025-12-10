@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, toRaw } from 'vue';
 import type { Cell, GameMode, CellStatus } from '../types';
 
 const SEQUENCE_CLASSIC = [
@@ -11,72 +11,121 @@ export function useGameLogic() {
     const cells = ref<Cell[]>([]);
     const nextId = ref(0);
 
+    // 1. ПОЛНАЯ ПЕРЕСТРОЙКА СВЯЗЕЙ (O(N))
+    // Строит и горизонтальные (змейка), и вертикальные (колонки) связи
     const rebuildLinks = () => {
         let lastActiveIndex: number | null = null;
 
-        cells.value.forEach((cell, index) => {
+        // Кэш для вертикальных связей: хранит индекс последней активной ячейки в каждой из 9 колонок
+        const lastSeenInColumn: (number | null)[] = new Array(9).fill(null);
+
+        // Используем toRaw, чтобы не триггерить реактивность при массовой записи
+        const rawCells = toRaw(cells.value);
+
+        rawCells.forEach((cell, index) => {
+            // Сброс всех связей перед пересчетом
+            cell.prev = null;
+            cell.next = null;
+            cell.up = null;
+            cell.down = null;
+
             if (cell.status === 'crossed') {
-                cell.prev = null;
-                cell.next = null;
                 return;
             }
-            cell.prev = lastActiveIndex;
 
-            if (lastActiveIndex !== null && cells.value[lastActiveIndex]) {
-                cells.value[lastActiveIndex]!.next = index;
+            // --- Горизонтальные связи (Змейка) ---
+            cell.prev = lastActiveIndex;
+            if (lastActiveIndex !== null && rawCells[lastActiveIndex]) {
+                rawCells[lastActiveIndex]!.next = index;
+            }
+            lastActiveIndex = index;
+
+            // --- Вертикальные связи (Колонки) ---
+            const col = index % 9;
+            const upIndex = lastSeenInColumn[col]; // Кто был последним в этой колонке?
+
+            if (upIndex !== null && upIndex !== undefined && rawCells[upIndex]) {
+                // Связываем текущую с верхней
+                cell.up = upIndex;
+                rawCells[upIndex]!.down = index;
             }
 
-            lastActiveIndex = index;
-            cell.next = null;
+            // Теперь текущая ячейка становится "последней увиденной" в этой колонке
+            lastSeenInColumn[col] = index;
         });
     };
 
+    // 2. ОБНОВЛЕНИЕ ПОСЛЕ ХОДА (O(1))
+    // "Зашивает" дыры в списках и по горизонтали, и по вертикали
     const updateLinksAfterCross = (idx1: number, idx2: number) => {
-        const c1 = cells.value[idx1];
-        const c2 = cells.value[idx2];
+        const rawCells = toRaw(cells.value);
+        const c1 = rawCells[idx1];
+        const c2 = rawCells[idx2];
+
         if (!c1 || !c2) return;
 
-        if (c1.prev !== null && c1.prev !== undefined) {
-            const prevCell = cells.value[c1.prev];
-            if (prevCell) prevCell.next = c1.next;
-        }
-        if (c1.next !== null && c1.next !== undefined) {
-            const nextCell = cells.value[c1.next];
-            if (nextCell) nextCell.prev = c1.prev;
-        }
+        // Хелпер для удаления ячейки из связных списков
+        const unlinkCell = (cell: Cell) => {
+            // Змейка (prev/next)
+            if (cell.prev !== null && cell.prev !== undefined) {
+                const prev = rawCells[cell.prev];
+                if (prev) prev.next = cell.next;
+            }
+            if (cell.next !== null && cell.next !== undefined) {
+                const next = rawCells[cell.next];
+                if (next) next.prev = cell.prev;
+            }
 
-        if (c2.prev !== null && c2.prev !== undefined) {
-            const prevCell = cells.value[c2.prev];
-            if (prevCell) prevCell.next = c2.next;
-        }
-        if (c2.next !== null && c2.next !== undefined) {
-            const nextCell = cells.value[c2.next];
-            if (nextCell) nextCell.prev = c2.prev;
-        }
+            // Колонки (up/down)
+            if (cell.up !== null && cell.up !== undefined) {
+                const up = rawCells[cell.up];
+                if (up) up.down = cell.down;
+            }
+            if (cell.down !== null && cell.down !== undefined) {
+                const down = rawCells[cell.down];
+                if (down) down.up = cell.up;
+            }
 
-        c1.prev = c1.next = null;
-        c2.prev = c2.next = null;
+            // Обнуляем ссылки у удаленной
+            cell.prev = cell.next = cell.up = cell.down = null;
+        };
+
+        unlinkCell(c1);
+        unlinkCell(c2);
     };
 
+    // 3. ПОИСК СОСЕДЕЙ (O(1) - МГНОВЕННО)
+    const findNeighbors = (index: number): number[] => {
+        const rawCells = toRaw(cells.value);
+        const cell = rawCells[index];
+        if (!cell) return [];
+
+        const neighbors: number[] = [];
+
+        // Просто берем готовые ссылки
+        if (cell.prev !== null && cell.prev !== undefined) neighbors.push(cell.prev);
+        if (cell.next !== null && cell.next !== undefined) neighbors.push(cell.next);
+
+        // Важно: проверяем, что вертикальный сосед не является тем же самым, что и горизонтальный
+        if (cell.up !== null && cell.up !== undefined && !neighbors.includes(cell.up)) {
+            neighbors.push(cell.up);
+        }
+        if (cell.down !== null && cell.down !== undefined && !neighbors.includes(cell.down)) {
+            neighbors.push(cell.down);
+        }
+
+        return neighbors;
+    };
+
+    // Оптимизированные проверки
     const isHorizontalNeighbor = (idx1: number, idx2: number): boolean => {
-        const c1 = cells.value[idx1];
-        if (!c1) return false;
-        return c1.next === idx2 || c1.prev === idx2;
+        const c = toRaw(cells.value[idx1]);
+        return !!c && (c.next === idx2 || c.prev === idx2);
     };
 
     const isVerticalNeighbor = (idx1: number, idx2: number): boolean => {
-        const col1 = idx1 % 9;
-        const col2 = idx2 % 9;
-        if (col1 !== col2) return false;
-
-        const start = Math.min(idx1, idx2);
-        const end = Math.max(idx1, idx2);
-
-        for (let i = start + 9; i < end; i += 9) {
-            const cell = cells.value[i];
-            if (cell && cell.status !== 'crossed') return false;
-        }
-        return true;
+        const c = toRaw(cells.value[idx1]);
+        return !!c && (c.down === idx2 || c.up === idx2);
     };
 
     const canMatch = (idx1: number, idx2: number): boolean => {
@@ -151,19 +200,24 @@ export function useGameLogic() {
     };
 
     const findHint = (startIndex = 0): number[] | null => {
-        const len = cells.value.length;
+        const rawCells = toRaw(cells.value);
+        const len = rawCells.length;
+
         for (let i = startIndex; i < len; i++) {
-            const c1 = cells.value[i];
+            const c1 = rawCells[i];
             if (!c1 || c1.status === 'crossed') continue;
 
+            // Проверяем только "быстрых" соседей (next и down)
+            // Этого достаточно для хинта, так как мы идем слева направо
+
+            // Горизонтальный сосед
             if (c1.next !== null && c1.next !== undefined) {
                 if (canMatch(i, c1.next)) return [i, c1.next];
             }
 
-            for (let j = i + 1; j < len; j++) {
-                const c2 = cells.value[j];
-                if (!c2 || c2.status === 'crossed') continue;
-                if (canMatch(i, j)) return [i, j];
+            // Вертикальный сосед
+            if (c1.down !== null && c1.down !== undefined) {
+                if (canMatch(i, c1.down)) return [i, c1.down];
             }
         }
         return null;
@@ -195,35 +249,6 @@ export function useGameLogic() {
         }
 
         return rowsRemoved;
-    };
-
-    const findNeighbors = (index: number): number[] => {
-        const neighbors: number[] = [];
-        const cell = cells.value[index];
-        if (!cell) return [];
-
-        if (cell.prev !== null && cell.prev !== undefined) neighbors.push(cell.prev);
-        if (cell.next !== null && cell.next !== undefined) neighbors.push(cell.next);
-
-        const len = cells.value.length;
-        const ROW_SIZE = 9;
-
-        for (let i = index + ROW_SIZE; i < len; i += ROW_SIZE) {
-            const c = cells.value[i];
-            if (c && c.status !== 'crossed') {
-                neighbors.push(i);
-                break;
-            }
-        }
-        for (let i = index - ROW_SIZE; i >= 0; i -= ROW_SIZE) {
-            const c = cells.value[i];
-            if (c && c.status !== 'crossed') {
-                neighbors.push(i);
-                break;
-            }
-        }
-
-        return neighbors;
     };
 
     return {
