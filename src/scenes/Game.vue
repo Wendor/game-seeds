@@ -406,7 +406,13 @@ const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = useP
 
 const { save, load, clear: clearSave } = usePersistence('seeds-save', { cells, secondsElapsed, history, nextId });
 
-watch(cells, () => { if (!isGameOver.value) save(props.mode); }, { deep: true });
+//watch(cells, () => { if (!isGameOver.value) save(props.mode); }, { deep: true });
+let autoSaveInterval: ReturnType<typeof setInterval> | null = null;
+watch(history, () => {
+  if (!isGameOver.value) {
+    save(props.mode);
+  }
+});
 
 watch(isGameOver, (val) => {
   if (val) {
@@ -541,6 +547,12 @@ onMounted(() => {
     // Запускаем замер через небольшую паузу, чтобы стили применились
     setTimeout(measureDimensions, 200);
   }
+
+  autoSaveInterval = setInterval(() => {
+    if (!isGameOver.value && activeCount.value > 0) {
+      save(props.mode);
+    }
+  }, 30000);
 });
 
 onUnmounted(() => {
