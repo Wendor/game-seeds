@@ -1,4 +1,6 @@
 export const GAME_CONFIG = {
+    ROW_SIZE: 9,
+
     // Лимиты
     MAX_CELLS: 40000,
     BOT_SEARCH_LIMIT: 2000,

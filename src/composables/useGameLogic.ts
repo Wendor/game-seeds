@@ -1,4 +1,5 @@
 import { ref, toRaw } from 'vue';
+import { GAME_CONFIG } from '../config';
 import type { Cell, GameMode, CellStatus } from '../types';
 
 const SEQUENCE_CLASSIC = [
@@ -17,7 +18,7 @@ export function useGameLogic() {
         let lastActiveIndex: number | null = null;
 
         // Кэш для вертикальных связей: хранит индекс последней активной ячейки в каждой из 9 колонок
-        const lastSeenInColumn: (number | null)[] = new Array(9).fill(null);
+        const lastSeenInColumn: (number | null)[] = new Array(GAME_CONFIG.ROW_SIZE).fill(null);
 
         // Используем toRaw, чтобы не триггерить реактивность при массовой записи
         const rawCells = toRaw(cells.value);
@@ -41,7 +42,7 @@ export function useGameLogic() {
             lastActiveIndex = index;
 
             // --- Вертикальные связи (Колонки) ---
-            const col = index % 9;
+            const col = index % GAME_CONFIG.ROW_SIZE;
             const upIndex = lastSeenInColumn[col]; // Кто был последним в этой колонке?
 
             if (upIndex !== null && upIndex !== undefined && rawCells[upIndex]) {
@@ -148,10 +149,10 @@ export function useGameLogic() {
             newCells = SEQUENCE_CLASSIC.map(n => ({ id: nextId.value++, value: n, status: 'active' }));
         } else if (mode === 'easy') {
             const numbers = [1, 2, 4, 5, 6, 8, 9];
-            const values = Array.from({ length: 27 }, () => numbers[Math.floor(Math.random() * numbers.length)]!);
+            const values = Array.from({ length: GAME_CONFIG.ROW_SIZE * 3 }, () => numbers[Math.floor(Math.random() * numbers.length)]!);
             newCells = values.map(n => ({ id: nextId.value++, value: n, status: 'active' }));
         } else {
-            const rnd = Array.from({ length: 27 }, () => Math.floor(Math.random() * 9) + 1);
+            const rnd = Array.from({ length: GAME_CONFIG.ROW_SIZE * 3 }, () => Math.floor(Math.random() * 9) + 1);
             newCells = rnd.map(n => ({ id: nextId.value++, value: n, status: 'active' }));
         }
 
@@ -183,7 +184,7 @@ export function useGameLogic() {
             }
             newValues.sort(() => Math.random() - 0.5);
         } else if (mode === 'random') {
-            newValues = Array.from({ length: 27 }, () => Math.floor(Math.random() * 9) + 1);
+            newValues = Array.from({ length: GAME_CONFIG.ROW_SIZE * 3 }, () => Math.floor(Math.random() * 9) + 1);
         } else {
             newValues = activeCells.map(c => c.value);
         }
@@ -224,7 +225,7 @@ export function useGameLogic() {
     };
 
     const cleanEmptyRows = (): number => {
-        const ROW_SIZE = 9;
+        const ROW_SIZE = GAME_CONFIG.ROW_SIZE;
         let rowsRemoved = 0;
         let hasChanges = false;
 

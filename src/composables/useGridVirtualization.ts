@@ -1,5 +1,6 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, type Ref } from 'vue';
 import type { Cell } from '../types';
+import { GAME_CONFIG } from '../config';
 
 interface GhostItem {
     value: number;
@@ -18,8 +19,8 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
     const bottomBarHeight = ref(54);
     const BUFFER = 6;
 
-    const topGhosts = ref<(GhostItem | null)[]>(Array(9).fill(null));
-    const bottomGhosts = ref<(GhostItem | null)[]>(Array(9).fill(null));
+    const topGhosts = ref<(GhostItem | null)[]>(Array(GAME_CONFIG.ROW_SIZE).fill(null));
+    const bottomGhosts = ref<(GhostItem | null)[]>(Array(GAME_CONFIG.ROW_SIZE).fill(null));
 
     // --- RESIZE OBSERVER ---
     let resizeObserver: ResizeObserver | null = null;
@@ -50,10 +51,10 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
     const chunkedRows = computed(() => {
         const result = [];
         const rawCells = cells.value;
-        for (let i = 0; i < rawCells.length; i += 9) {
+        for (let i = 0; i < rawCells.length; i += GAME_CONFIG.ROW_SIZE) {
             result.push({
-                items: rawCells.slice(i, i + 9).map((c, localIdx) => ({ cell: c, originalIndex: i + localIdx })),
-                rowIndex: i / 9
+                items: rawCells.slice(i, i + GAME_CONFIG.ROW_SIZE).map((c, localIdx) => ({ cell: c, originalIndex: i + localIdx })),
+                rowIndex: i / GAME_CONFIG.ROW_SIZE
             });
         }
         return result;
@@ -89,10 +90,10 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
         const gridScrollY = scrollTop.value - headerHeight.value;
         const topRowIndex = Math.floor((gridScrollY + offsetTop) / rowHeight.value) + 1;
 
-        for (let col = 0; col < 9; col++) {
+        for (let col = 0; col < GAME_CONFIG.ROW_SIZE; col++) {
             let foundItem: GhostItem | null = null;
-            const startIdx = ((topRowIndex - 1) * 9) + col;
-            for (let i = startIdx; i >= 0; i -= 9) {
+            const startIdx = ((topRowIndex - 1) * GAME_CONFIG.ROW_SIZE) + col;
+            for (let i = startIdx; i >= 0; i -= GAME_CONFIG.ROW_SIZE) {
                 if (i >= cells.value.length) continue;
                 const cell = cells.value[i];
                 if (cell && cell.status !== 'crossed' && !cell.isDeleting) {
@@ -117,10 +118,10 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
             const offsetBottom = rowHeight.value - 8;
             const bottomRowIndex = Math.floor((viewportBottomInGrid - offsetBottom) / rowHeight.value);
 
-            for (let col = 0; col < 9; col++) {
+            for (let col = 0; col < GAME_CONFIG.ROW_SIZE; col++) {
                 let foundItem: GhostItem | null = null;
-                const startIdx = ((bottomRowIndex + 1) * 9) + col;
-                for (let i = startIdx; i < cells.value.length; i += 9) {
+                const startIdx = ((bottomRowIndex + 1) * GAME_CONFIG.ROW_SIZE) + col;
+                for (let i = startIdx; i < cells.value.length; i += GAME_CONFIG.ROW_SIZE) {
                     if (i < 0) continue;
                     const cell = cells.value[i];
                     if (cell && cell.status !== 'crossed' && !cell.isDeleting) {
@@ -141,7 +142,7 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
     const scrollToCell = (index: number) => {
         const container = gridContainerRef.value;
         if (container && rowHeight.value > 0) {
-            const rowIndex = Math.floor(index / 9);
+            const rowIndex = Math.floor(index / GAME_CONFIG.ROW_SIZE);
             let targetPos = (rowIndex * rowHeight.value) + headerHeight.value - (containerHeight.value / 2) + (rowHeight.value / 2);
             targetPos = Math.max(0, targetPos);
             container.scrollTo({ top: targetPos, behavior: 'smooth' });

@@ -1,8 +1,8 @@
-import { ref, type Ref } from 'vue';
+import { ref, shallowRef, type Ref } from 'vue';
 import type { Cell, HistoryRecord } from '../types';
 
 export function useHistory(cells: Ref<Cell[]>) {
-    const history = ref<HistoryRecord[]>([]);
+    const history = shallowRef<HistoryRecord[]>([]);
 
     const recordMatch = (indices: number[]) => {
         const changes = indices.map(i => {
@@ -12,7 +12,7 @@ export function useHistory(cells: Ref<Cell[]>) {
                 prevStatus: cell ? cell.status : 'active'
             };
         });
-        history.value.push({ type: 'match', changes });
+        history.value = [...history.value, { type: 'match', changes }];
         trimHistory();
     };
 
@@ -28,7 +28,7 @@ export function useHistory(cells: Ref<Cell[]>) {
     };
 
     const undo = (): boolean => {
-        const lastAction = history.value.pop();
+        const lastAction = history.value[history.value.length - 1];
         if (!lastAction) return false;
 
         switch (lastAction.type) {
@@ -60,6 +60,8 @@ export function useHistory(cells: Ref<Cell[]>) {
                 });
                 break;
         }
+
+        history.value = history.value.slice(0, -1);
         return true;
     };
 
