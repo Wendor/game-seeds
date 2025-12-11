@@ -1,5 +1,5 @@
 export const GAME_CONFIG = {
-    ROW_SIZE: 9,
+    ROW_SIZE: 6,
 
     // Лимиты
     MAX_CELLS: 40000,

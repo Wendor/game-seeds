@@ -19,7 +19,7 @@
       @back="$emit('back')"
     />
 
-    <main class="grid-container" ref="gridContainerRef" @scroll="handleScroll">
+    <main class="grid-container" ref="gridContainerRef" @scroll="handleScroll" :style="{ '--cols': GAME_CONFIG.ROW_SIZE }">
       
       <div id="ghost-top-sentinel" class="ghost-row sticky-top" :class="{ visible: hasTopGhosts }">
         <div 
