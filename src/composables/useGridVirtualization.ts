@@ -85,7 +85,7 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
         if (cells.value.length === 0 || rowHeight.value === 0) return;
 
         // 1. Верхние призраки
-        const offsetTop = rowHeight.value;
+        const offsetTop = rowHeight.value + 4;
         const gridScrollY = scrollTop.value - headerHeight.value;
         const topRowIndex = Math.floor((gridScrollY + offsetTop) / rowHeight.value) + 1;
 
@@ -114,7 +114,7 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
             bottomGhosts.value.fill(null);
         } else {
             const viewportBottomInGrid = (scrollTop.value + containerHeight.value) - bottomBarHeight.value - headerHeight.value;
-            const offsetBottom = rowHeight.value - rowHeight.value * 0.2;
+            const offsetBottom = rowHeight.value - 8;
             const bottomRowIndex = Math.floor((viewportBottomInGrid - offsetBottom) / rowHeight.value);
 
             for (let col = 0; col < 9; col++) {
