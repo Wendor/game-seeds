@@ -17,6 +17,10 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
     const rowHeight = ref(50);
     const headerHeight = ref(54);
     const bottomBarHeight = ref(54);
+
+    const rowPaddingBottom = ref(4);
+    const ghostPaddingTotal = ref(8);
+
     const BUFFER = 6;
 
     const topGhosts = ref<(GhostItem | null)[]>(Array(GAME_CONFIG.ROW_SIZE).fill(null));
@@ -30,13 +34,30 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
         const topSentinel = document.getElementById('ghost-top-sentinel');
         const bottomSentinel = document.getElementById('ghost-bottom-sentinel');
 
-        if (topSentinel) headerHeight.value = topSentinel.offsetHeight;
-        if (bottomSentinel) bottomBarHeight.value = bottomSentinel.offsetHeight;
+        if (topSentinel) {
+            headerHeight.value = topSentinel.offsetHeight;
+
+            // Читаем стили
+            const style = window.getComputedStyle(topSentinel);
+            const pt = parseFloat(style.paddingTop) || 0;
+            const pb = parseFloat(style.paddingBottom) || 0;
+
+            ghostPaddingTotal.value = pt + pb;
+        }
+
+        if (bottomSentinel) {
+            bottomBarHeight.value = bottomSentinel.offsetHeight;
+        }
 
         let realRowHeight = 0;
+
         if (gridRef.value && gridRef.value.firstElementChild) {
             const firstRow = gridRef.value.firstElementChild as HTMLElement;
             realRowHeight = firstRow.offsetHeight;
+
+            const rowStyle = window.getComputedStyle(firstRow);
+            rowPaddingBottom.value = parseFloat(rowStyle.paddingBottom) || 0;
+
         } else if (topSentinel) {
             realRowHeight = topSentinel.offsetHeight;
         }
@@ -85,8 +106,8 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
     const updateGhosts = () => {
         if (cells.value.length === 0 || rowHeight.value === 0) return;
 
-        // 1. Верхние призраки
-        const offsetTop = rowHeight.value + 4;
+        const offsetTop = rowHeight.value + rowPaddingBottom.value;
+
         const gridScrollY = scrollTop.value - headerHeight.value;
         const topRowIndex = Math.floor((gridScrollY + offsetTop) / rowHeight.value) + 1;
 
@@ -104,18 +125,15 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
             topGhosts.value[col] = foundItem;
         }
 
-        // 2. Нижние призраки
-        // Проверка: если мы в самом низу, принудительно очищаем нижних призраков
         const scrollHeight = gridContainerRef.value?.scrollHeight || 0;
         const clientHeight = gridContainerRef.value?.clientHeight || 0;
-        // Допуск в 5px для погрешностей браузера
         const isAtBottom = (Math.ceil(scrollTop.value) + clientHeight) >= (scrollHeight - 5);
 
         if (isAtBottom) {
             bottomGhosts.value.fill(null);
         } else {
             const viewportBottomInGrid = (scrollTop.value + containerHeight.value) - bottomBarHeight.value - headerHeight.value;
-            const offsetBottom = rowHeight.value - 8;
+            const offsetBottom = rowHeight.value - ghostPaddingTotal.value;
             const bottomRowIndex = Math.floor((viewportBottomInGrid - offsetBottom) / rowHeight.value);
 
             for (let col = 0; col < GAME_CONFIG.ROW_SIZE; col++) {
