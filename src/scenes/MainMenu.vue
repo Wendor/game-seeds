@@ -70,6 +70,11 @@ import type { GameMode, SavedGameState } from '../types';
 import { toggleMute, getMuteState } from '../utils/audio';
 import { useI18n } from '../composables/useI18n';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
 const { t, toggleLanguage, currentLang } = useI18n();
 
 const appVersion = __APP_VERSION__;
@@ -121,8 +126,13 @@ onMounted(() => {
 
 // PWA
 const canInstall = ref(false);
-let deferredPrompt: any = null;
-const handleInstallPrompt = (e: Event) => { e.preventDefault(); deferredPrompt = e; canInstall.value = true; };
+let deferredPrompt: BeforeInstallPromptEvent|null = null;
+const handleInstallPrompt = (e: Event) => {
+  e.preventDefault();
+  // Приведение типа, так как стандартный Event не содержит методов PWA
+  deferredPrompt = e as BeforeInstallPromptEvent;
+  canInstall.value = true;
+};
 const installApp = async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') { deferredPrompt = null; canInstall.value = false; } };
 onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handleInstallPrompt); });
 </script>

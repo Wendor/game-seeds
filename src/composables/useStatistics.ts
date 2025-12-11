@@ -1,6 +1,6 @@
 import type { GameMode } from '../types';
 
-interface StatsData {
+export interface StatsData {
     easy: { started: number };
     classic: { started: number };
     random: { started: number };

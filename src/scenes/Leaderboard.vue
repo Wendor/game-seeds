@@ -73,7 +73,7 @@
 import { ref, computed, onMounted } from 'vue';
 import type { GameMode, GameRecord } from '../types';
 import { useI18n } from '../composables/useI18n';
-import { useStatistics } from '../composables/useStatistics';
+import { useStatistics, type StatsData } from '../composables/useStatistics';
 
 const { t, currentLang } = useI18n();
 const { getStats } = useStatistics();
@@ -81,8 +81,7 @@ defineEmits(['close']);
 
 const activeTab = ref<GameMode>('easy');
 const allRecords = ref<GameRecord[]>([]);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const generalStats = ref<any>({ easy: { started: 0 }, classic: { started: 0 }, random: { started: 0 } });
+const generalStats = ref<StatsData>({ easy: { started: 0 }, classic: { started: 0 }, random: { started: 0 } });
 
 onMounted(() => {
   const data = localStorage.getItem('seeds-records');
