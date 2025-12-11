@@ -12,17 +12,24 @@ export function usePersistence(storageKey: string, deps: PersistenceDeps) {
     const { cells, secondsElapsed, history, nextId } = deps;
 
     const save = (mode: GameMode) => {
+        const minifiedCells = cells.value.map(c => ({
+            id: c.id,
+            value: c.value,
+            status: c.status
+        }));
+
         const state: SavedGameState = {
-            cells: cells.value,
+            cells: minifiedCells as Cell[],
             time: secondsElapsed.value,
             mode: mode,
             history: history.value,
             nextId: nextId.value
         };
+
         try {
             localStorage.setItem(storageKey, JSON.stringify(state));
         } catch (e) {
-            console.error('Ошибка сохранения игры:', e);
+            console.error('Ошибка сохранения игры (возможно, переполнен LocalStorage):', e);
         }
     };
 
