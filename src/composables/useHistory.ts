@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue';
+import { ref, toRaw, type Ref } from 'vue';
 import type { Cell, HistoryRecord } from '../types';
 import { GAME_CONFIG } from '../config';
 
@@ -26,13 +26,21 @@ export function useHistory(cells: Ref<Cell[]>) {
         const rowSize = GAME_CONFIG.ROW_SIZE;
         const removedRows: { index: number; cells: Cell[] }[] = [];
 
-        for (let i = 0; i < cells.value.length; i += rowSize) {
-            const chunk = cells.value.slice(i, i + rowSize);
+        const rawCells = toRaw(cells.value);
+
+        for (let i = 0; i < rawCells.length; i += rowSize) {
+            const chunk = rawCells.slice(i, i + rowSize);
 
             if (chunk.length === rowSize && chunk.every(c => c.status === 'crossed')) {
+                const minifiedChunk = chunk.map(c => ({
+                    id: c.id,
+                    value: c.value,
+                    status: c.status
+                }));
+
                 removedRows.push({
                     index: i,
-                    cells: JSON.parse(JSON.stringify(chunk))
+                    cells: minifiedChunk as Cell[]
                 });
             }
         }

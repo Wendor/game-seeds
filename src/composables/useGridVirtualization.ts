@@ -21,6 +21,8 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
     const rowPaddingBottom = ref(4);
     const ghostPaddingTotal = ref(8);
 
+    let isTicking = false;
+
     const BUFFER = 6;
 
     const topGhosts = ref<(GhostItem | null)[]>(Array(GAME_CONFIG.ROW_SIZE).fill(null));
@@ -154,7 +156,16 @@ export function useGridVirtualization(cells: Ref<Cell[]>) {
 
     // --- ACTIONS ---
     const handleScroll = (e: Event) => {
-        scrollTop.value = (e.target as HTMLElement).scrollTop;
+        if (!isTicking) {
+            window.requestAnimationFrame(() => {
+                const target = e.target as HTMLElement;
+                if (target) {
+                    scrollTop.value = target.scrollTop;
+                }
+                isTicking = false;
+            });
+            isTicking = true;
+        }
     };
 
     const scrollToCell = (index: number) => {

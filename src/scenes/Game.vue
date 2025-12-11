@@ -19,6 +19,8 @@
       @back="$emit('back')"
     />
 
+    <div v-if="isBotActive" class="grid-blocker"></div>
+
     <main class="grid-container" ref="gridContainerRef" @scroll="handleScroll" :style="{ '--cols': GAME_CONFIG.ROW_SIZE }">
       
       <div id="ghost-top-sentinel" class="ghost-row sticky-top" :class="{ visible: hasTopGhosts }">
@@ -87,7 +89,7 @@
           </button>
           <button @click="$emit('back')" class="btn btn-primary btn-lg">{{ t('game.toMenu') }}</button>
         </div>
-      </div>
+      </div>      
     </main>
 
     <GameControls 
@@ -299,6 +301,9 @@ watch(isGameOver, (val) => {
   if (val) {
     stopBot();
     stopTimer();
+    
+    cells.value = []; 
+
     playSound('win');
     confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
     
