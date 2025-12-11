@@ -2,6 +2,8 @@
 import { ref, type Ref } from 'vue';
 import type { Cell } from '../types';
 import { useI18n } from './useI18n';
+import type { SoundName } from '../utils/audio';
+import type { HapticService } from '../utils/haptics';
 
 interface PlayerDeps {
     cells: Ref<Cell[]>;
@@ -18,11 +20,9 @@ interface PlayerDeps {
         popHistory: () => void;
     };
     uiActions: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        playSound: (name: any) => void;
+        playSound: (name: SoundName) => void;
         showToast: (msg: string) => void;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        haptic: any;
+        haptic: HapticService;
         clearHintUI: () => void;
     };
     state: {

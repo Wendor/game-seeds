@@ -2,6 +2,8 @@ import { ref } from 'vue';
 
 const currentLang = ref<'ru' | 'en'>('ru');
 
+type I18nNode = string | { [key: string]: I18nNode };
+
 const dictionary = {
     ru: {
         menu: {
@@ -138,26 +140,29 @@ const dictionary = {
 };
 
 export function useI18n() {
-    const t = (path: string, params?: Record<string, string | number>) => {
+    const t = (path: string, params?: Record<string, string | number>): string => {
         const keys = path.split('.');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let value: any = dictionary[currentLang.value];
+
+        let value: I18nNode | undefined = dictionary[currentLang.value] as unknown as I18nNode;
 
         for (const key of keys) {
-            if (value && value[key]) {
+            if (value && typeof value === 'object' && key in value) {
                 value = value[key];
             } else {
                 return path;
             }
         }
 
-        if (typeof value === 'string' && params) {
-            Object.entries(params).forEach(([k, v]) => {
-                value = value.replace(`{${k}}`, String(v));
-            });
+        if (typeof value === 'string') {
+            if (params) {
+                Object.entries(params).forEach(([k, v]) => {
+                    value = (value as string).replace(new RegExp(`{${k}}`, 'g'), String(v));
+                });
+            }
+            return value;
         }
 
-        return value;
+        return path;
     };
 
     const initLanguage = () => {

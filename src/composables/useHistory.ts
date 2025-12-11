@@ -1,8 +1,9 @@
-import { ref, shallowRef, type Ref } from 'vue';
+import { ref, type Ref } from 'vue';
 import type { Cell, HistoryRecord } from '../types';
+import { GAME_CONFIG } from '../config';
 
 export function useHistory(cells: Ref<Cell[]>) {
-    const history = shallowRef<HistoryRecord[]>([]);
+    const history = ref<HistoryRecord[]>([]);
 
     const recordMatch = (indices: number[]) => {
         const changes = indices.map(i => {
@@ -12,7 +13,7 @@ export function useHistory(cells: Ref<Cell[]>) {
                 prevStatus: cell ? cell.status : 'active'
             };
         });
-        history.value = [...history.value, { type: 'match', changes }];
+        history.value.push({ type: 'match', changes });
         trimHistory();
     };
 
@@ -22,13 +23,26 @@ export function useHistory(cells: Ref<Cell[]>) {
     };
 
     const recordClean = () => {
-        const snapshot = JSON.parse(JSON.stringify(cells.value));
-        history.value.push({ type: 'clean', previousState: snapshot });
+        const rowSize = GAME_CONFIG.ROW_SIZE;
+        const removedRows: { index: number; cells: Cell[] }[] = [];
+
+        for (let i = 0; i < cells.value.length; i += rowSize) {
+            const chunk = cells.value.slice(i, i + rowSize);
+
+            if (chunk.length === rowSize && chunk.every(c => c.status === 'crossed')) {
+                removedRows.push({
+                    index: i,
+                    cells: JSON.parse(JSON.stringify(chunk))
+                });
+            }
+        }
+
+        history.value.push({ type: 'clean', removedRows });
         trimHistory();
     };
 
     const undo = (): boolean => {
-        const lastAction = history.value[history.value.length - 1];
+        const lastAction = history.value.pop();
         if (!lastAction) return false;
 
         switch (lastAction.type) {
@@ -36,7 +50,6 @@ export function useHistory(cells: Ref<Cell[]>) {
                 lastAction.changes.forEach(({ index, prevStatus }) => {
                     if (cells.value[index]) {
                         cells.value[index].status = prevStatus === 'selected' ? 'active' : prevStatus;
-                        // На всякий случай чистим флаги и здесь
                         delete cells.value[index].isDeleting;
                         delete cells.value[index].isNew;
                     }
@@ -50,18 +63,20 @@ export function useHistory(cells: Ref<Cell[]>) {
                 break;
 
             case 'clean':
-                // Восстанавливаем состояние из снимка
-                cells.value = lastAction.previousState;
+                if (lastAction.removedRows && lastAction.removedRows.length > 0) {
+                    lastAction.removedRows.sort((a, b) => a.index - b.index);
 
-                // === FIX: Очищаем флаги анимации, попавшие в снимок ===
-                cells.value.forEach(cell => {
-                    if (cell.isDeleting) delete cell.isDeleting;
-                    if (cell.isNew) delete cell.isNew;
-                });
+                    lastAction.removedRows.forEach(row => {
+                        row.cells.forEach(c => {
+                            delete c.isDeleting;
+                            delete c.isNew;
+                        });
+
+                        cells.value.splice(row.index, 0, ...row.cells);
+                    });
+                }
                 break;
         }
-
-        history.value = history.value.slice(0, -1);
         return true;
     };
 

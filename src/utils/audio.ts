@@ -11,7 +11,7 @@ const buffers: Record<string, AudioBuffer> = {};
 
 let isMuted = false;
 
-const soundFiles = {
+export const soundFiles = {
     select: './sounds/pop.mp3',
     match: './sounds/success.mp3',
     error: './sounds/error.mp3',
@@ -20,6 +20,8 @@ const soundFiles = {
     undo: './sounds/pop.mp3',
     restart: './sounds/click.mp3',
 };
+
+export type SoundName = keyof typeof soundFiles;
 
 const loadSound = async (key: string, url: string) => {
     try {
@@ -41,7 +43,7 @@ export const initSounds = () => {
     });
 };
 
-export const playSound = (name: keyof typeof soundFiles) => {
+export const playSound = (name: SoundName) => {
     if (isMuted || !buffers[name]) return;
 
     if (context.state === 'suspended') {

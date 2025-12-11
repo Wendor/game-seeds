@@ -23,7 +23,7 @@ export interface GameRecord {
 export type HistoryRecord =
     | { type: 'match'; changes: { index: number; prevStatus: CellStatus }[] }
     | { type: 'add'; count: number }
-    | { type: 'clean'; previousState: Cell[] };
+    | { type: 'clean'; removedRows: { index: number; cells: Cell[] }[] };
 
 export interface SavedGameState {
     cells: Cell[];

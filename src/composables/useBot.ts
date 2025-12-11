@@ -2,6 +2,7 @@ import { ref, type Ref, onUnmounted, toRaw } from 'vue';
 import type { Cell } from '../types';
 import { useI18n } from './useI18n';
 import BotWorker from '../workers/bot.worker?worker';
+import type { SoundName } from '../utils/audio';
 
 interface BotDependencies {
     cells: Ref<Cell[]>;
@@ -17,7 +18,7 @@ interface BotDependencies {
         popHistory: () => void;
     };
     uiActions: {
-        playSound: (name: any) => void;
+        playSound: (name: SoundName) => void;
         showToast: (msg: string) => void;
         scrollToCell: (index: number) => void;
     };
