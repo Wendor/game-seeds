@@ -11,7 +11,8 @@ interface PersistenceDeps {
 export function usePersistence(storageKey: string, deps: PersistenceDeps) {
     const { cells, secondsElapsed, history, nextId } = deps;
 
-    const save = (mode: GameMode) => {
+    // Добавляем аргумент levelId
+    const save = (mode: GameMode, levelId?: string) => {
         const minifiedCells = cells.value.map(c => ({
             id: c.id,
             value: c.value,
@@ -23,13 +24,14 @@ export function usePersistence(storageKey: string, deps: PersistenceDeps) {
             time: secondsElapsed.value,
             mode: mode,
             history: history.value,
-            nextId: nextId.value
+            nextId: nextId.value,
+            levelId: levelId // <--- Сохраняем
         };
 
         try {
             localStorage.setItem(storageKey, JSON.stringify(state));
         } catch (e) {
-            console.error('Ошибка сохранения игры (возможно, переполнен LocalStorage):', e);
+            console.error('Ошибка сохранения игры:', e);
         }
     };
 

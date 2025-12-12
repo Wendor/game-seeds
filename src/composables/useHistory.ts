@@ -17,27 +17,24 @@ export function useHistory(cells: Ref<Cell[]>) {
         trimHistory();
     };
 
-    const recordAdd = (count: number) => {
-        history.value.push({ type: 'add', count });
+    const recordAdd = (ids: number[]) => {
+        history.value.push({ type: 'add', count: ids.length, ids });
         trimHistory();
     };
 
     const recordClean = () => {
         const rowSize = GAME_CONFIG.ROW_SIZE;
         const removedRows: { index: number; cells: Cell[] }[] = [];
-
         const rawCells = toRaw(cells.value);
 
         for (let i = 0; i < rawCells.length; i += rowSize) {
             const chunk = rawCells.slice(i, i + rowSize);
-
             if (chunk.length === rowSize && chunk.every(c => c.status === 'crossed')) {
                 const minifiedChunk = chunk.map(c => ({
                     id: c.id,
                     value: c.value,
                     status: c.status
                 }));
-
                 removedRows.push({
                     index: i,
                     cells: minifiedChunk as Cell[]
@@ -65,7 +62,12 @@ export function useHistory(cells: Ref<Cell[]>) {
                 break;
 
             case 'add':
-                if (lastAction.count > 0 && cells.value.length >= lastAction.count) {
+                // ИСПРАВЛЕНИЕ: Удаляем конкретные ID, а не просто хвост
+                if (lastAction.ids && lastAction.ids.length > 0) {
+                    const idsToRemove = new Set(lastAction.ids);
+                    cells.value = cells.value.filter(c => !idsToRemove.has(c.id));
+                } else if (lastAction.count > 0 && cells.value.length >= lastAction.count) {
+                    // Фоллбек для старых сохранений
                     cells.value.splice(cells.value.length - lastAction.count, lastAction.count);
                 }
                 break;
@@ -73,13 +75,11 @@ export function useHistory(cells: Ref<Cell[]>) {
             case 'clean':
                 if (lastAction.removedRows && lastAction.removedRows.length > 0) {
                     lastAction.removedRows.sort((a, b) => a.index - b.index);
-
                     lastAction.removedRows.forEach(row => {
                         row.cells.forEach(c => {
                             delete c.isDeleting;
                             delete c.isNew;
                         });
-
                         cells.value.splice(row.index, 0, ...row.cells);
                     });
                 }

@@ -38,7 +38,8 @@ export function useCellStyling(deps: CellStylingDeps) {
             'selected': cell.status === 'selected',
             'active': cell.status === 'active',
             'deleting': !!cell.isDeleting,
-            'new-cell': !!cell.isNew
+            'new-cell': !!cell.isNew,
+            'is-void': cell.value === 0
         };
 
         if (cell.status !== 'crossed') {

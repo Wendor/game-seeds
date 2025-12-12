@@ -27,6 +27,15 @@
           <span class="save-info">{{ saveInfo }}</span>
         </button>
 
+        <button @click="$emit('open-levels')" class="btn btn-levels btn-xl">
+           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-svg">
+             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+             <circle cx="6" cy="18" r="3"></circle>
+             <rect x="16" y="16" width="6" height="6" rx="1"></rect>
+           </svg>
+           {{ t('menu.levels') }}
+        </button>
+
         <button @click="$emit('start', 'easy')" class="btn btn-easy btn-xl">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-svg"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>
           {{ t('menu.easy') }}
@@ -86,6 +95,7 @@ defineEmits<{
   (e: 'continue'): void;
   (e: 'open-rules'): void;
   (e: 'open-leaderboard'): void;
+  (e: 'open-levels'): void;
   (e: 'toggle-theme'): void;
 }>();
 
@@ -99,6 +109,7 @@ const saveInfo = computed(() => {
   let modeKey = 'stats.classic';
   if (savedGame.value.mode === 'random') modeKey = 'stats.random';
   if (savedGame.value.mode === 'easy') modeKey = 'stats.easy';
+  if (savedGame.value.mode === 'levels') modeKey = 'stats.levels';
 
   const m = Math.floor(savedGame.value.time / 60).toString().padStart(2, '0');
   const s = (savedGame.value.time % 60).toString().padStart(2, '0');
@@ -207,6 +218,14 @@ onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handle
   box-shadow: 0 4px 10px rgba(var(--rgb-amber), 0.3);
 }
 .btn-easy:hover { filter: brightness(0.9); }
+
+/* Стиль для кнопки Фигуры */
+.btn-levels {
+  background-color: rgb(var(--rgb-violet)); 
+  color: white;
+  box-shadow: 0 4px 10px rgba(var(--rgb-violet), 0.3);
+}
+.btn-levels:hover { filter: brightness(0.9); }
 
 .save-info { font-size: 0.85rem; opacity: 0.9; font-weight: 400; margin-top: 2px; }
 

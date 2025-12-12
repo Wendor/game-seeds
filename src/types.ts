@@ -1,4 +1,4 @@
-export type GameMode = 'classic' | 'random' | 'easy';
+export type GameMode = 'classic' | 'random' | 'easy' | 'levels';
 
 export type CellStatus = 'active' | 'selected' | 'crossed';
 
@@ -6,10 +6,10 @@ export interface Cell {
     id: number;
     value: number;
     status: CellStatus;
-    prev?: number | null; // Сосед слева/сверху (по змейке)
-    next?: number | null; // Сосед справа/снизу (по змейке)
-    up?: number | null;   // <--- Сосед физически сверху (по колонке)
-    down?: number | null; // <--- Сосед физически снизу (по колонке)
+    prev?: number | null;
+    next?: number | null;
+    up?: number | null;
+    down?: number | null;
     isDeleting?: boolean;
     isNew?: boolean;
 }
@@ -18,11 +18,12 @@ export interface GameRecord {
     date: number;
     time: number;
     mode: GameMode;
+    levelId?: string;
 }
 
 export type HistoryRecord =
     | { type: 'match'; changes: { index: number; prevStatus: CellStatus }[] }
-    | { type: 'add'; count: number }
+    | { type: 'add'; count: number; ids: number[] } // <-- Добавили ids
     | { type: 'clean'; removedRows: { index: number; cells: Cell[] }[] };
 
 export interface SavedGameState {
@@ -31,4 +32,12 @@ export interface SavedGameState {
     mode: GameMode;
     history: HistoryRecord[];
     nextId: number;
+    levelId?: string;
+}
+
+export interface LevelConfig {
+    id: string;
+    name: string;
+    pattern: string[];
+    thresholds: [number, number];
 }

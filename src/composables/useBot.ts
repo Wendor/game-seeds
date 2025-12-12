@@ -3,18 +3,18 @@ import type { Cell } from '../types';
 import { useI18n } from './useI18n';
 import BotWorker from '../workers/bot.worker?worker';
 import type { SoundName } from '../utils/audio';
-import { GAME_CONFIG } from '../config'; // Импортируем конфиг
+import { GAME_CONFIG } from '../config';
 
 interface BotDependencies {
     cells: Ref<Cell[]>;
     gameActions: {
-        addLines: () => number;
+        addLines: () => number[] | number;
         cleanEmptyRows: () => number | void;
         updateLinksAfterCross: (idx1: number, idx2: number) => void;
     };
     historyActions: {
         recordMatch: (indices: number[]) => void;
-        recordAdd: (count: number) => void;
+        recordAdd: (ids: number[]) => void;
         recordClean: () => void;
         popHistory: () => void;
     };
@@ -92,13 +92,14 @@ export function useBot(deps: BotDependencies) {
 
                 gameActions.updateLinksAfterCross(idx1, idx2);
                 historyActions.recordClean();
-                // Так как бот использует анимированную очистку (которая возвращает void),
-                // мы просто запускаем её. Если это обычная очистка, она вернет number.
+
                 const removed = gameActions.cleanEmptyRows();
 
-                // Если функция вернула 0 (синхронно ничего не удалила), убираем запись истории.
-                // Если вернула void (асинхронно), то она сама разберется с историей.
-                if (typeof removed === 'number' && removed === 0) {
+                // Поправлена логика удаления превентивной записи
+                if (typeof removed === 'number' && removed > 0) {
+                    // Синхронно удалилось - оставляем запись
+                } else {
+                    // 0 удалено или запустилась анимация (которая сама запишет) - удаляем дубль
                     historyActions.popHistory();
                 }
 
@@ -113,9 +114,8 @@ export function useBot(deps: BotDependencies) {
                 await new Promise(r => setTimeout(r, 300));
                 if (!isBotActive.value) return;
 
-                const count = gameActions.addLines(); // Анимированное добавление
-                if (count > 0) historyActions.recordAdd(count);
-                // Звук уже есть внутри addLinesWithAnimation
+                // Бот использует общую функцию добавления, которая уже пишет в историю
+                gameActions.addLines();
 
                 botLoopTimeout = setTimeout(requestMove, GAME_CONFIG.BOT_ADD_LINES_DELAY);
             }

@@ -93,6 +93,11 @@
 
       <div v-if="isGameOver" class="win-message">
         {{ t('game.win') }}
+        
+        <div v-if="levelStars > 0" class="win-stars">
+          <span v-for="i in 3" :key="i" class="big-star" :class="{ filled: i <= levelStars }">★</span>
+        </div>
+
         <div class="final-time">{{ t('game.time', { time: formattedTime }) }}</div>
         <div class="win-actions">
           <button @click="shareResult" class="btn btn-success btn-lg" style="gap: 8px;">
@@ -119,10 +124,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import type { GameMode } from '../types';
+import type { GameMode, LevelConfig } from '../types';
 import { GAME_CONFIG } from '../config';
 
-// Composables
 import { useGameLogic } from '../composables/useGameLogic';
 import { useTimer } from '../composables/useTimer';
 import { useHistory } from '../composables/useHistory';
@@ -136,7 +140,6 @@ import { useStatistics } from '../composables/useStatistics';
 import { useGridVirtualization } from '../composables/useGridVirtualization';
 import { useCellStyling } from '../composables/useCellStyling';
 
-// Components
 import Toast from '../components/Toast.vue';
 import Modal from '../components/Modal.vue';
 import GameHeader from '../components/GameHeader.vue';
@@ -145,12 +148,18 @@ import confetti from 'canvas-confetti';
 import '../assets/game.css';
 
 const { t } = useI18n();
-const { incrementGamesStarted, saveGameRecord } = useStatistics();
+const { incrementGamesStarted, saveGameRecord, saveLevelStars } = useStatistics();
 
-const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
+const props = defineProps<{ 
+  mode: GameMode; 
+  resume?: boolean; 
+  levelConfig?: LevelConfig;
+}>();
+
 const emit = defineEmits(['back', 'restart']);
 
-// --- CORE LOGIC ---
+const levelStars = ref(0);
+
 const { 
   cells, nextId, generateCells, restoreCells, canMatch, addLines, 
   findHint, cleanEmptyRows, findNeighbors, updateLinksAfterCross, rebuildLinks,
@@ -166,7 +175,6 @@ const showDefeatModal = ref(false);
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => nextId.value > 0 && activeCount.value === 0);
 
-// --- VIRTUAL SCROLL ---
 const { 
   gridContainerRef, gridRef, handleScroll, visibleRows, 
   spacerTop, spacerBottom, topGhosts, bottomGhosts, 
@@ -176,7 +184,6 @@ const {
 
 type GhostItem = { value: number; index: number } | null;
 
-// --- ACTIONS & ORCHESTRATION ---
 const animateAndClean = (): number | void => {
     const ROW_SIZE = GAME_CONFIG.ROW_SIZE;
     const indicesToDelete: number[] = [];
@@ -206,31 +213,30 @@ const animateAndClean = (): number | void => {
 };
 
 const addLinesWithAnimation = (): number => {
-    // 1. Проверка на лимит
     if (cells.value.length >= GAME_CONFIG.MAX_CELLS) {
-        // 2. Проверка на проигрыш (если нет ходов)
         const hint = findHint(0);
-        
         if (!hint) {
             playSound('error');
             haptic.impact();
             showDefeatModal.value = true;
             return 0;
         }
-        
         showToast(t('game.fullLines'));
         haptic.medium();
         return 0;
     }
 
     const oldLength = cells.value.length;
-    const count = addLines(props.mode);
+    // ТЕПЕРЬ ПОЛУЧАЕМ МАССИВ ID
+    const addedIds = addLines(props.mode);
+    const count = Array.isArray(addedIds) ? addedIds.length : addedIds; 
     
-    if (count > 0) {
+    if (count > 0 && Array.isArray(addedIds)) {
       for (let i = oldLength; i < cells.value.length; i++) {
           cells.value[i]!.isNew = true;
       }
-        recordAdd(count);
+        // ПЕРЕДАЕМ ID В ИСТОРИЮ
+        recordAdd(addedIds);
         playSound('add');
         haptic.impact();
         
@@ -253,7 +259,6 @@ const addLinesWithAnimation = (): number => {
     return count;
 };
 
-// --- HINTS & BOT ---
 const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints({ findHint, scrollToCell, showToast });
 
 const { isBotActive, toggleBot, stopBot } = useBot({
@@ -269,7 +274,6 @@ const performAddLines = () => {
     if (count > 0) showToast(t('game.added', { n: count }));
 };
 
-// --- PLAYER INTERACTION ---
 const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = usePlayer({
     cells,
     gameActions: { canMatch, findNeighbors, cleanEmptyRows: animateAndClean, updateLinksAfterCross },
@@ -278,7 +282,6 @@ const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = useP
     state: { isBotActive }
 });
 
-// --- STYLING ---
 const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStyling({
     isBotActive,
     neighborIndices,
@@ -302,12 +305,15 @@ const handleToggleBot = () => {
     toggleBot();
 };
 
-// --- PERSISTENCE & HISTORY ---
 const { save, load, clear: clearSave } = usePersistence('seeds-save', { cells, secondsElapsed, history, nextId });
 
 let autoSaveInterval: ReturnType<typeof setInterval> | null = null;
 
-watch(history, () => { if (!isGameOver.value) save(props.mode); }, { deep: false });
+watch(history, () => { 
+    if (!isGameOver.value) {
+        save(props.mode, props.levelConfig?.id); 
+    }
+}, { deep: false });
 
 const performUndo = () => {
   if (undo()) {
@@ -321,22 +327,25 @@ const performUndo = () => {
   }
 };
 
-// --- LIFECYCLE & RESULTS ---
 watch(isGameOver, (val) => {
   if (val) {
     stopBot();
     stopTimer();
-    
-    // Очищаем поле для визуальной красоты
     cells.value = [];
-
     playSound('win');
     confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    saveGameRecord(props.mode, secondsElapsed.value, props.levelConfig?.id);
     
-    // Сохраняем рекорд через useStatistics
-    saveGameRecord(props.mode, secondsElapsed.value);
-    
-    // Удаляем сейв текущей игры
+    if (props.mode === 'levels' && props.levelConfig) {
+        const time = secondsElapsed.value;
+        const [threeStar, twoStar] = props.levelConfig.thresholds;
+        if (time <= threeStar) levelStars.value = 3;
+        else if (time <= twoStar) levelStars.value = 2;
+        else levelStars.value = 1;
+        saveLevelStars(props.levelConfig.id, levelStars.value);
+    } else {
+        levelStars.value = 0;
+    }
     clearSave();
   }
 });
@@ -345,6 +354,8 @@ const initGame = () => {
   resetSelection();
   clearHintUI();
   clearHistory();
+  levelStars.value = 0;
+
   if (props.resume) {
     const parsed = load();
     if (parsed) {
@@ -359,8 +370,9 @@ const initGame = () => {
         return;
     }
   }
+  
   incrementGamesStarted(props.mode);
-  generateCells(props.mode);
+  generateCells(props.mode, props.levelConfig?.pattern);
   resetTimer(0);
   clearSave();
   startTimer();
@@ -399,10 +411,39 @@ onUnmounted(() => {
   stopTimer();
   stopBot();
   if (autoSaveInterval) clearInterval(autoSaveInterval);
-  if (!isGameOver.value) save(props.mode);
+  if (!isGameOver.value) {
+      save(props.mode, props.levelConfig?.id);
+  }
 });
 </script>
 
 <style scoped>
-/* styles in game.css */
+.win-stars {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+  justify-content: center;
+}
+
+.big-star {
+  font-size: 3rem;
+  color: var(--border-color);
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.big-star.filled {
+  color: rgb(var(--rgb-yellow));
+  transform: scale(1.1);
+  filter: drop-shadow(0 4px 0px rgba(0,0,0,0.1));
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+}
+
+.big-star.filled:nth-child(1) { animation-delay: 0.1s; }
+.big-star.filled:nth-child(2) { animation-delay: 0.3s; }
+.big-star.filled:nth-child(3) { animation-delay: 0.5s; }
+
+@keyframes popIn {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1.1); }
+}
 </style>

@@ -502,3 +502,11 @@ body.dark-mode .ghost-cell.is-matchable {
     z-index: 28;
     cursor: wait;
 }
+
+.cell.is-void {
+    visibility: hidden;
+    pointer-events: none;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+}

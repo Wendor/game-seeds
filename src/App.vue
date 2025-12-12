@@ -7,9 +7,16 @@
         :is-dark="isDark"
         @toggle-theme="toggleTheme"
         @start="handleStartGame"
+        @open-levels="currentScreen = 'levels'"
         @continue="handleContinueGame" 
         @open-rules="currentScreen = 'rules'"
         @open-leaderboard="currentScreen = 'leaderboard'"
+      />
+
+      <Levels 
+        v-else-if="currentScreen === 'levels'"
+        @back="currentScreen = 'menu'"
+        @play="handleStartLevel"
       />
 
       <Rules 
@@ -26,6 +33,7 @@
         v-else 
         :mode="activeGameMode" 
         :resume="isResumeGame"
+        :level-config="activeLevelConfig"
         :key="gameKey"
         @back="currentScreen = 'menu'"
         @restart="handleRestart"
@@ -41,16 +49,19 @@ import MainMenu from './scenes/MainMenu.vue';
 import Rules from './scenes/Rules.vue';
 import Game from './scenes/Game.vue';
 import Leaderboard from './scenes/Leaderboard.vue';
-import type { GameMode } from './types';
+import Levels from './scenes/Levels.vue';
+import type { GameMode, LevelConfig } from './types';
 import { useI18n } from './composables/useI18n';
+import { LEVELS } from './data/levels';
 
 const { initLanguage } = useI18n();
 initLanguage();
 
-type ScreenType = 'menu' | 'rules' | 'game' | 'leaderboard';
+type ScreenType = 'menu' | 'rules' | 'game' | 'leaderboard' | 'levels';
 
 const currentScreen = ref<ScreenType>('menu');
 const activeGameMode = ref<GameMode>('classic');
+const activeLevelConfig = ref<LevelConfig | undefined>(undefined);
 const isResumeGame = ref(false);
 const restartCounter = ref(0);
 
@@ -99,10 +110,20 @@ onMounted(() => {
     }
   });
 });
+
 const gameKey = computed(() => `${activeGameMode.value}-${restartCounter.value}`);
 
 const handleStartGame = (mode: GameMode) => {
   activeGameMode.value = mode;
+  activeLevelConfig.value = undefined;
+  isResumeGame.value = false;
+  restartCounter.value++;
+  currentScreen.value = 'game';
+};
+
+const handleStartLevel = (level: LevelConfig) => {
+  activeGameMode.value = 'levels';
+  activeLevelConfig.value = level;
   isResumeGame.value = false;
   restartCounter.value++;
   currentScreen.value = 'game';
@@ -115,6 +136,13 @@ const handleContinueGame = () => {
       const parsed = JSON.parse(savedData);
       if (parsed.mode) {
         activeGameMode.value = parsed.mode;
+        
+        // Восстанавливаем конфиг уровня, если это режим уровней
+        if (parsed.mode === 'levels' && parsed.levelId) {
+          activeLevelConfig.value = LEVELS.find(l => l.id === parsed.levelId);
+        } else {
+          activeLevelConfig.value = undefined;
+        }
       }
     } catch (e) {
       console.error('Ошибка чтения сохранения', e);
@@ -183,12 +211,12 @@ body {
 
 .fade-enter-from {
   opacity: 0;
-  transform: scale(0.98); /* Легкое увеличение при появлении */
+  transform: scale(0.98);
 }
 
 .fade-leave-to {
   opacity: 0;
-  transform: scale(1.02); /* Легкое увеличение при исчезновении */
+  transform: scale(1.02);
 }
 
 /* UI KIT (Кнопки) */

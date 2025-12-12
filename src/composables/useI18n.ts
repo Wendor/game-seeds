@@ -13,6 +13,7 @@ const dictionary = {
             easy: 'Лайт (Легкий)',
             classic: 'Классика (1-19)',
             random: 'Случайные числа',
+            levels: 'Фигуры',
             install: 'Установить приложение',
             stats: 'Статистика',
             rules: 'Правила игры',
@@ -65,6 +66,7 @@ const dictionary = {
             easy: 'Лайт',
             classic: 'Классика',
             random: 'Рандом',
+            levels: 'Фигуры', // <--- Добавлено
             empty: 'Пока нет побед. Сыграем?',
             back: 'Назад в меню',
             played: 'Игр начато',
@@ -82,6 +84,7 @@ const dictionary = {
             easy: 'Lite (Easy)',
             classic: 'Classic (1-19)',
             random: 'Random Numbers',
+            levels: 'Shapes',
             install: 'Install App',
             stats: 'Statistics',
             rules: 'How to play',
@@ -134,6 +137,7 @@ const dictionary = {
             easy: 'Lite',
             classic: 'Classic',
             random: 'Random',
+            levels: 'Shapes', // <--- Добавлено
             empty: 'No wins yet. Let\'s play?',
             back: 'Back to Menu',
             played: 'Games Started',

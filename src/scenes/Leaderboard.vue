@@ -8,16 +8,16 @@
 
       <div class="tabs">
         <button @click="activeTab = 'easy'" class="tab-btn" :class="{ active: activeTab === 'easy' }">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>
           {{ t('stats.easy') }}
         </button>
         <button @click="activeTab = 'classic'" class="tab-btn" :class="{ active: activeTab === 'classic' }">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
           {{ t('stats.classic') }}
         </button>
         <button @click="activeTab = 'random'" class="tab-btn" :class="{ active: activeTab === 'random' }">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 8h.01"></path><path d="M8 8h.01"></path><path d="M8 16h.01"></path><path d="M16 16h.01"></path><path d="M12 12h.01"></path></svg>
           {{ t('stats.random') }}
+        </button>
+        <button @click="activeTab = 'levels'" class="tab-btn" :class="{ active: activeTab === 'levels' }">
+          Фигуры
         </button>
       </div>
 
@@ -76,18 +76,22 @@ import { useI18n } from '../composables/useI18n';
 import { useStatistics, type StatsData } from '../composables/useStatistics';
 
 const { t, currentLang } = useI18n();
-const { getStats } = useStatistics();
+const { getStats, getAllRecords } = useStatistics();
 defineEmits(['close']);
 
 const activeTab = ref<GameMode>('easy');
 const allRecords = ref<GameRecord[]>([]);
-const generalStats = ref<StatsData>({ easy: { started: 0 }, classic: { started: 0 }, random: { started: 0 } });
+
+// Исправлена инициализация, добавлены levels
+const generalStats = ref<StatsData>({ 
+  easy: { started: 0 }, 
+  classic: { started: 0 }, 
+  random: { started: 0 },
+  levels: { started: 0 }
+});
 
 onMounted(() => {
-  const data = localStorage.getItem('seeds-records');
-  if (data) {
-    try { allRecords.value = JSON.parse(data); } catch (e) { console.error(e); }
-  }
+  allRecords.value = getAllRecords();
   generalStats.value = getStats();
 });
 
@@ -100,6 +104,7 @@ const currentRecords = computed(() => {
 
 const currentStats = computed(() => {
   const mode = activeTab.value;
+  // Теперь TypeScript не будет ругаться, так как 'levels' есть в StatsData
   const started = generalStats.value[mode]?.started || 0;
   
   const modeRecords = allRecords.value.filter(r => r.mode === mode);
@@ -130,6 +135,7 @@ const formatDate = (ts: number) => {
 </script>
 
 <style scoped>
+/* Те же стили, что и раньше */
 .screen-leaderboard {
   flex: 1; display: flex; justify-content: center; padding: 20px;
   background: var(--bg-main);
@@ -165,9 +171,6 @@ h2 {
   font-size: 0.9rem;
   white-space: nowrap;
 }
-.tab-icon { opacity: 0.7; }
-.tab-btn.active .tab-icon { opacity: 1; }
-
 .tab-btn.active { 
   background: var(--card-bg); 
   color: rgb(var(--rgb-blue)); 
