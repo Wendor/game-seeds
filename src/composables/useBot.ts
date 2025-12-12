@@ -3,12 +3,13 @@ import type { Cell } from '../types';
 import { useI18n } from './useI18n';
 import BotWorker from '../workers/bot.worker?worker';
 import type { SoundName } from '../utils/audio';
+import { GAME_CONFIG } from '../config'; // Импортируем конфиг
 
 interface BotDependencies {
     cells: Ref<Cell[]>;
     gameActions: {
         addLines: () => number;
-        cleanEmptyRows: () => number | void; // <--- FIX
+        cleanEmptyRows: () => number | void;
         updateLinksAfterCross: (idx1: number, idx2: number) => void;
     };
     historyActions: {
@@ -79,7 +80,7 @@ export function useBot(deps: BotDependencies) {
                 const [idx1, idx2] = move;
                 uiActions.scrollToCell(idx1);
 
-                await new Promise(r => setTimeout(r, 100));
+                await new Promise(r => setTimeout(r, GAME_CONFIG.ANIMATION.BOT_TURN_DELAY));
                 if (!isBotActive.value) return;
 
                 historyActions.recordMatch([idx1, idx2]);
@@ -101,9 +102,9 @@ export function useBot(deps: BotDependencies) {
                     historyActions.popHistory();
                 }
 
-                botLoopTimeout = setTimeout(requestMove, 10);
+                botLoopTimeout = setTimeout(requestMove, GAME_CONFIG.BOT_ACTION_DELAY);
             } else {
-                if (cells.value.length >= 4500) {
+                if (cells.value.length >= GAME_CONFIG.MAX_CELLS) {
                     uiActions.showToast(t('game.botGiveUp'));
                     stopBot();
                     return;
@@ -116,7 +117,7 @@ export function useBot(deps: BotDependencies) {
                 if (count > 0) historyActions.recordAdd(count);
                 // Звук уже есть внутри addLinesWithAnimation
 
-                botLoopTimeout = setTimeout(requestMove, 500);
+                botLoopTimeout = setTimeout(requestMove, GAME_CONFIG.BOT_ADD_LINES_DELAY);
             }
         }
     };

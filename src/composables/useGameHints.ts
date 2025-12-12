@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { useI18n } from './useI18n';
+import { GAME_CONFIG } from '../config';
 
 interface HintsDeps {
     findHint: (startIndex?: number) => number[] | null;
@@ -39,7 +40,7 @@ export function useGameHints(deps: HintsDeps) {
 
             hintTimeout = setTimeout(() => {
                 hintIndices.value = [];
-            }, 2000);
+            }, GAME_CONFIG.HINT_DURATION);
         } else {
             showToast(t('game.noMoves'));
             nextHintStartIndex.value = 0;

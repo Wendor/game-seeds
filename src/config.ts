@@ -3,22 +3,28 @@ export const GAME_CONFIG = {
 
     // Лимиты
     MAX_CELLS: 40000,
-    BOT_SEARCH_LIMIT: 2000,
+    BOT_SEARCH_LIMIT: 3000,
 
-    // Тайминги (мс)
+    // Тайминги UI (мс)
     TOAST_DURATION: 2000,
     HINT_DURATION: 2000,
 
-    // Скорость бота
-    BOT_THINK_DELAY: 250,
-    BOT_ACTION_DELAY: 50,
-    BOT_ADD_LINES_DELAY: 800,
+    // Тайминги анимаций
+    ANIMATION: {
+        ADD_DELAY: 500,
+        CLEAN_DELAY: 300,
+        GHOST_CLICK: 150,
+        BOT_TURN_DELAY: 100
+    },
 
-    // Очки (Score) для алгоритма бота
+    BOT_THINK_DELAY: 300,
+    BOT_ACTION_DELAY: 10,
+    BOT_ADD_LINES_DELAY: 500,
+
     SCORE: {
-        VERTICAL: 150,
-        SAME_VALUE: 20,
-        CHAIN_REACTION: 500,
-        POSITION_PENALTY: 0.001
+        VERTICAL: 120,
+        SAME_VALUE: 15,
+        CHAIN_REACTION: 40,
+        POSITION_PENALTY: 0.005
     }
 };

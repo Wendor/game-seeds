@@ -84,13 +84,13 @@ const evaluateMove = (cells: Cell[], idx1: number, idx2: number): number => {
 
     // Вернул высокий приоритет вертикальным ходам.
     // Это важно, чтобы "разгружать" столбцы.
-    if (isVertical) score += 120;
+    if (isVertical) score += GAME_CONFIG.SCORE.VERTICAL;
 
     // Бонус за одинаковые цифры (они лучше, чем сумма 10, т.к. "чище")
-    if (c1.value === c2.value) score += 15;
+    if (c1.value === c2.value) score += GAME_CONFIG.SCORE.SAME_VALUE;
 
     // Штраф за позицию (чем дальше, тем меньше приоритет, чтобы чистить с начала)
-    score -= (idx1 * 0.005);
+    score -= (idx1 * GAME_CONFIG.SCORE.POSITION_PENALTY);
 
     // === ПРОВЕРКА ОТКРЫТИЯ ПАРЫ (Look-ahead) ===
     // Проверяем, соединятся ли соседи после удаления этой пары
@@ -108,7 +108,7 @@ const evaluateMove = (cells: Cell[], idx1: number, idx2: number): number => {
             if (prev && next && prev.status !== 'crossed' && next.status !== 'crossed') {
                 // Если после хода образуется новая пара - даем бонус
                 if (prev.value === next.value || prev.value + next.value === 10) {
-                    score += 40; // Чуть уменьшил бонус, чтобы не перебивать вертикали
+                    score += GAME_CONFIG.SCORE.CHAIN_REACTION; // Чуть уменьшил бонус, чтобы не перебивать вертикали
                 }
             }
         }
@@ -192,7 +192,7 @@ const findAllMoves = (cells: Cell[], limit: number = -1): Move[] => {
     const moves: Move[] = [];
     const len = cells.length;
     // Ограничиваем область поиска на больших полях для скорости
-    const iterLimit = len > 4000 ? 3000 : len;
+    const iterLimit = len > 4000 ? GAME_CONFIG.BOT_SEARCH_LIMIT : len;
 
     for (let i = 0; i < iterLimit; i++) {
         const currentCell = cells[i];

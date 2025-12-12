@@ -12,6 +12,18 @@
       @cancel="showRestartModal = false"
     />
 
+    <Modal 
+      :show="showDefeatModal" 
+      :title="t('game.defeatTitle')" 
+      :message="t('game.defeatMsg')"
+      :confirm-text="t('game.tryAgain')"
+      cancel-text=""
+      @confirm="confirmRestart" 
+      @cancel="confirmRestart"
+    />
+
+    <div v-if="isBotActive" class="grid-blocker"></div>
+
     <GameHeader 
       :time="formattedTime"
       :active-count="activeCount"
@@ -89,7 +101,7 @@
           </button>
           <button @click="$emit('back')" class="btn btn-primary btn-lg">{{ t('game.toMenu') }}</button>
         </div>
-      </div>      
+      </div>
     </main>
 
     <GameControls 
@@ -107,7 +119,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import type { GameMode, GameRecord } from '../types';
+import type { GameMode } from '../types';
 import { GAME_CONFIG } from '../config';
 
 // Composables
@@ -122,7 +134,7 @@ import { useFeedback } from '../composables/useFeedback';
 import { useI18n } from '../composables/useI18n';
 import { useStatistics } from '../composables/useStatistics';
 import { useGridVirtualization } from '../composables/useGridVirtualization';
-import { useCellStyling } from '../composables/useCellStyling'; // Новый импорт
+import { useCellStyling } from '../composables/useCellStyling';
 
 // Components
 import Toast from '../components/Toast.vue';
@@ -133,7 +145,7 @@ import confetti from 'canvas-confetti';
 import '../assets/game.css';
 
 const { t } = useI18n();
-const { incrementGamesStarted } = useStatistics();
+const { incrementGamesStarted, saveGameRecord } = useStatistics();
 
 const props = defineProps<{ mode: GameMode; resume?: boolean; }>();
 const emit = defineEmits(['back', 'restart']);
@@ -149,6 +161,8 @@ const { recordMatch, recordAdd, recordClean, popHistory, undo, clearHistory, has
 const { toastMessage, showToast, playSound, haptic } = useFeedback();
 
 const showRestartModal = ref(false);
+const showDefeatModal = ref(false);
+
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => nextId.value > 0 && activeCount.value === 0);
 
@@ -164,12 +178,12 @@ type GhostItem = { value: number; index: number } | null;
 
 // --- ACTIONS & ORCHESTRATION ---
 const animateAndClean = (): number | void => {
-    const ROW_SIZE = 9;
+    const ROW_SIZE = GAME_CONFIG.ROW_SIZE;
     const indicesToDelete: number[] = [];
     for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
         const chunk = cells.value.slice(i, i + ROW_SIZE);
         if (chunk.length === ROW_SIZE && chunk.every(c => c.status === 'crossed')) {
-            for (let j = 0; j < 9; j++) indicesToDelete.push(i + j);
+            for (let j = 0; j < ROW_SIZE; j++) indicesToDelete.push(i + j);
         }
     }
 
@@ -185,14 +199,25 @@ const animateAndClean = (): number | void => {
                 playSound('add');
             }
             nextTick(updateGhosts);
-        }, 300);
+        }, GAME_CONFIG.ANIMATION.CLEAN_DELAY);
         return; 
     }
     return 0;
 };
 
 const addLinesWithAnimation = (): number => {
+    // 1. Проверка на лимит
     if (cells.value.length >= GAME_CONFIG.MAX_CELLS) {
+        // 2. Проверка на проигрыш (если нет ходов)
+        const hint = findHint(0);
+        
+        if (!hint) {
+            playSound('error');
+            haptic.impact();
+            showDefeatModal.value = true;
+            return 0;
+        }
+        
         showToast(t('game.fullLines'));
         haptic.medium();
         return 0;
@@ -223,7 +248,7 @@ const addLinesWithAnimation = (): number => {
             for (let i = oldLength; i < cells.value.length; i++) {
               if (cells.value[i]) delete cells.value[i]?.isNew;
             }
-        }, 500);
+        }, GAME_CONFIG.ANIMATION.ADD_DELAY);
     }
     return count;
 };
@@ -253,7 +278,7 @@ const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = useP
     state: { isBotActive }
 });
 
-// --- STYLING (Новый хук) ---
+// --- STYLING ---
 const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStyling({
     isBotActive,
     neighborIndices,
@@ -265,7 +290,7 @@ const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStylin
 const handleGhostClick = (item: GhostItem) => {
   if (item && item.index !== undefined) {
     scrollToCell(item.index);
-    setTimeout(() => handleCellClick(item.index), 150);
+    setTimeout(() => handleCellClick(item.index), GAME_CONFIG.ANIMATION.GHOST_CLICK);
   }
 };
 
@@ -302,15 +327,16 @@ watch(isGameOver, (val) => {
     stopBot();
     stopTimer();
     
-    cells.value = []; 
+    // Очищаем поле для визуальной красоты
+    cells.value = [];
 
     playSound('win');
     confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
     
-    const record: GameRecord = { date: Date.now(), time: secondsElapsed.value, mode: props.mode };
-    const records = JSON.parse(localStorage.getItem('seeds-records') || '[]');
-    records.push(record);
-    localStorage.setItem('seeds-records', JSON.stringify(records));
+    // Сохраняем рекорд через useStatistics
+    saveGameRecord(props.mode, secondsElapsed.value);
+    
+    // Удаляем сейв текущей игры
     clearSave();
   }
 });
@@ -347,6 +373,7 @@ const confirmRestart = () => {
   clearSave();
   emit('restart');
   showRestartModal.value = false;
+  showDefeatModal.value = false;
 };
 
 const shareResult = async () => {

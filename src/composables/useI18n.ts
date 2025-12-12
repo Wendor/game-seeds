@@ -45,7 +45,10 @@ const dictionary = {
             noMoves: 'Ходов нет! Жми "Добавить"',
             copied: 'Скопировано!',
             shareText: '🏆 Победа в Семечках!\nЯ прошел в режиме {mode} за {time}!',
-            botGiveUp: 'Бот: Слишком много цифр, я сдаюсь.'
+            botGiveUp: 'Бот: Слишком много цифр, я сдаюсь.',
+            defeatTitle: 'Игра окончена',
+            defeatMsg: 'Поле заполнено, и доступных ходов больше нет.',
+            tryAgain: 'Попробовать снова'
         },
         rules: {
             title: 'Как играть?',
@@ -111,7 +114,10 @@ const dictionary = {
             noMoves: 'No moves! Press "Add Rows"',
             copied: 'Copied!',
             shareText: '🏆 Victory in Seeds!\nI completed {mode} mode in {time}!',
-            botGiveUp: 'Bot: Too many numbers, I give up.'
+            botGiveUp: 'Bot: Too many numbers, I give up.',
+            defeatTitle: 'Game Over',
+            defeatMsg: 'The board is full and there are no moves left.',
+            tryAgain: 'Try Again'
         },
         rules: {
             title: 'How to play?',
