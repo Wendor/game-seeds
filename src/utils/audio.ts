@@ -19,6 +19,7 @@ export const soundFiles = {
     win: './sounds/win.mp3',
     undo: './sounds/pop.mp3',
     restart: './sounds/click.mp3',
+    pop: './sounds/pop.mp3',
 };
 
 export type SoundName = keyof typeof soundFiles;

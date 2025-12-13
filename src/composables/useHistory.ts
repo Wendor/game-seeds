@@ -1,8 +1,8 @@
 import { ref, toRaw, type Ref } from 'vue';
-import type { Cell, HistoryRecord } from '../types';
+import type { Cell, HistoryRecord, PowerupType } from '../types';
 import { GAME_CONFIG } from '../config';
 
-export function useHistory(cells: Ref<Cell[]>) {
+export function useHistory(cells: Ref<Cell[]>, onRestorePowerup?: (type: PowerupType) => void) {
     const history = ref<HistoryRecord[]>([]);
 
     const recordMatch = (indices: number[]) => {
@@ -46,6 +46,21 @@ export function useHistory(cells: Ref<Cell[]>) {
         trimHistory();
     };
 
+    const recordShuffle = () => {
+        // Сохраняем ВСЕ значения ячеек (snapshot)
+        // Это может быть много памяти, но для 1-2 шагов назад нормально.
+        // Экономнее сохранять только значения активных ячеек, но проще сохранить map value.
+        const snapshot = cells.value.map(c => c.value);
+        history.value.push({ type: 'shuffle', snapshot });
+        trimHistory();
+    };
+
+    const recordPowerupUsage = (type: PowerupType) => {
+        // Этот рекорд добавляется СЛЕДОМ за действием (например, после shuffle),
+        // чтобы при Undo сначала отменилось действие, а потом вернулся заряд.
+        history.value.push({ type: 'powerup_usage', powerup: type });
+    };
+
     const undo = (): boolean => {
         const lastAction = history.value.pop();
         if (!lastAction) return false;
@@ -84,6 +99,24 @@ export function useHistory(cells: Ref<Cell[]>) {
                     });
                 }
                 break;
+            case 'shuffle':
+                if (lastAction.snapshot.length === cells.value.length) {
+                    lastAction.snapshot.forEach((val, i) => {
+                        const cell = cells.value[i];
+                        if (cell) {
+                            cell.value = val;
+                        }
+                    });
+                }
+                break;
+
+            case 'powerup_usage':
+                if (onRestorePowerup) {
+                    onRestorePowerup(lastAction.powerup);
+                }
+                undo();
+                break;
+
         }
         return true;
     };
@@ -110,6 +143,8 @@ export function useHistory(cells: Ref<Cell[]>) {
         popHistory,
         undo,
         clearHistory,
-        hasHistory
+        hasHistory,
+        recordShuffle,
+        recordPowerupUsage
     };
 }

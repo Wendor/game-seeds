@@ -235,6 +235,83 @@ export function useGameLogic() {
         return rowsRemoved;
     };
 
+    // 1. Перемешивание (только активные ячейки меняются местами)
+    const shuffleBoard = () => {
+        const rawCells = toRaw(cells.value);
+        const activeIndices: number[] = [];
+        const activeValues: number[] = [];
+
+        rawCells.forEach((cell, index) => {
+            if (cell.status !== 'crossed') {
+                activeIndices.push(index);
+                activeValues.push(cell.value);
+            }
+        });
+
+        // Исправлено: добавлены восклицательные знаки (!)
+        for (let i = activeValues.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = activeValues[i]!;
+            activeValues[i] = activeValues[j]!;
+            activeValues[j] = temp;
+        }
+
+        // Исправлено: проверка на существование ячейки перед присвоением
+        activeIndices.forEach((cellIndex, i) => {
+            const newVal = activeValues[i];
+            const targetCell = cells.value[cellIndex];
+
+            if (targetCell && newVal !== undefined) {
+                targetCell.value = newVal;
+            }
+        });
+
+        rebuildLinks();
+    };
+
+    // 2. Добавление одной случайной строки (9 чисел)
+    const addRandomRow = () => {
+        // Собираем уникальные значения, которые ЕСТЬ на поле и НЕ зачеркнуты
+        const existingValues = new Set<number>();
+        cells.value.forEach(cell => {
+            if (cell.status !== 'crossed') {
+                existingValues.add(cell.value);
+            }
+        });
+
+        // Если поле пустое (теоретически невозможно, но для безопасности) или все зачеркнуто - берем 1-9
+        // Иначе берем массив из имеющихся чисел
+        const sourceNumbers = existingValues.size > 0
+            ? Array.from(existingValues)
+            : [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        const newValues = Array.from({ length: 9 }, () => {
+            const randomIndex = Math.floor(Math.random() * sourceNumbers.length);
+            return sourceNumbers[randomIndex]!;
+        });
+
+        const newCells = newValues.map(n => ({
+            id: nextId.value++,
+            value: n,
+            status: 'active' as CellStatus
+        }));
+
+        cells.value.push(...newCells);
+        rebuildLinks();
+        return newCells.map(c => c.id);
+    };
+
+    // 3. Удаление одной ячейки (Молоток/Бомба)
+    const destroyCell = (index: number) => {
+        const cell = cells.value[index];
+        if (cell && cell.status !== 'crossed') {
+            cell.status = 'crossed';
+            rebuildLinks();
+            return true;
+        }
+        return false;
+    };
+
     return {
         cells,
         nextId,
@@ -247,5 +324,8 @@ export function useGameLogic() {
         findNeighbors,
         updateLinksAfterCross,
         rebuildLinks,
+        shuffleBoard,
+        addRandomRow,
+        destroyCell
     };
 }

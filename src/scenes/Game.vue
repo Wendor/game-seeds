@@ -32,7 +32,7 @@
       @back="$emit('back')"
     />
 
-    <div v-if="isBotActive" class="grid-blocker"></div>
+    <div v-if="activePowerup === 'hammer'" class="hammer-overlay"></div>
 
     <main class="grid-container" ref="gridContainerRef" @scroll="handleScroll" :style="{ '--cols': GAME_CONFIG.ROW_SIZE }">
       
@@ -66,7 +66,10 @@
             :key="cellData.cell.id"
             class="cell"
             :data-index="cellData.originalIndex"
-            :class="getCellClasses(cellData.cell, cellData.originalIndex)"
+            :class="{
+              ...getCellClasses(cellData.cell, cellData.originalIndex),
+              'hammer-target': activePowerup === 'hammer' && cellData.cell.status !== 'crossed'
+            }"
             @click="handleUserCellClick(cellData.originalIndex)" 
           >
             {{ cellData.cell.value }}
@@ -116,18 +119,21 @@
       :can-undo="hasHistory()"
       :is-game-over="isGameOver"
       :is-bot-active="isBotActive"
+      :powerups="powerups"
+      :active-powerup="activePowerup"
       @undo="performUndo"
       @hint="showNextHint"
       @add="performAddLines"
       @toggle-bot="handleToggleBot"
       @restart="showRestartModal = true"
+      @use-powerup="handlePowerupClick"
     />
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import type { GameMode, LevelConfig } from '../types';
+import type { GameMode, LevelConfig, PowerupType } from '../types';
 import { GAME_CONFIG } from '../config';
 
 // Composables
@@ -143,6 +149,7 @@ import { useI18n } from '../composables/useI18n';
 import { useStatistics } from '../composables/useStatistics';
 import { useGridVirtualization } from '../composables/useGridVirtualization';
 import { useCellStyling } from '../composables/useCellStyling';
+import { usePowerups } from '../composables/usePowerups';
 
 // Components
 import Toast from '../components/Toast.vue';
@@ -173,16 +180,20 @@ const exitButtonLabel = computed(() => {
 });
 
 const levelStars = ref(0);
-// --- НОВОЕ СОСТОЯНИЕ: Флаг старта игры ---
 const hasGameStarted = ref(false);
 
 const { 
   cells, nextId, generateCells, restoreCells, canMatch, addLines, 
   findHint, cleanEmptyRows, findNeighbors, updateLinksAfterCross, rebuildLinks,
+  shuffleBoard, addRandomRow, destroyCell
 } = useGameLogic();
 
+const { powerups, activePowerup, usePowerup, restorePowerup, toggleActive, resetPowerups, initPowerups } = usePowerups();
+
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
-const { recordMatch, recordAdd, recordClean, popHistory, undo, clearHistory, hasHistory, history } = useHistory(cells);
+
+// Передаем restorePowerup в useHistory, чтобы Undo знал как вернуть предмет
+const { recordMatch, recordAdd, recordClean, recordShuffle, recordPowerupUsage, popHistory, undo, clearHistory, hasHistory, history } = useHistory(cells, restorePowerup);
 const { toastMessage, showToast, playSound, haptic } = useFeedback();
 
 const showRestartModal = ref(false);
@@ -191,7 +202,6 @@ const showDefeatModal = ref(false);
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => nextId.value > 0 && activeCount.value === 0);
 
-// --- НОВАЯ ФУНКЦИЯ: Запуск таймера при первом действии ---
 const ensureGameStarted = () => {
   if (!hasGameStarted.value) {
     hasGameStarted.value = true;
@@ -209,7 +219,6 @@ const {
 type GhostItem = { value: number; index: number } | null;
 
 const animateAndClean = (): number | void => {
-    // ... (код animateAndClean без изменений) ...
     const ROW_SIZE = GAME_CONFIG.ROW_SIZE;
     const indicesToDelete: number[] = [];
     for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
@@ -292,17 +301,15 @@ const { isBotActive, toggleBot, stopBot } = useBot({
     gameState: { isGameOver }
 });
 
-// --- ИЗМЕНЕНИЕ: Добавление строк стартует игру ---
 const performAddLines = () => {
-    ensureGameStarted(); // <--- Запускаем таймер
+    ensureGameStarted();
     const count = addLinesWithAnimation();
     if (count > 0) showToast(t('game.added', { n: count }));
 };
 
-// Переименовываем исходный handleCellClick, чтобы обернуть его
 const { 
     selectedIndex, neighborIndices, 
-    handleCellClick: playerHandleClick, // <-- переименовали
+    handleCellClick: playerHandleClick, 
     resetSelection 
 } = usePlayer({
     cells,
@@ -312,10 +319,68 @@ const {
     state: { isBotActive }
 });
 
-// --- НОВАЯ ФУНКЦИЯ: Обертка для клика пользователя ---
+// --- ОБРАБОТКА ПРЕДМЕТОВ ---
+const handlePowerupClick = (type: PowerupType) => {
+    ensureGameStarted();
+    if (isGameOver.value || isBotActive.value) return;
+    if (powerups.value[type] <= 0) return;
+
+    if (type === 'hammer') {
+        toggleActive('hammer');
+        if (activePowerup.value === 'hammer') {
+            showToast(t('game.powerups.useHammer') || 'Выберите ячейку');
+        }
+    } 
+    else if (type === 'shuffle') {
+        if (usePowerup('shuffle')) {
+            recordShuffle(); // Сначала записываем состояние ДО
+            shuffleBoard();  // Мешаем
+            recordPowerupUsage('shuffle'); // Записываем трату
+            playSound('add'); 
+            haptic.medium();
+            nextTick(updateGhosts);
+        }
+    }
+    else if (type === 'plus_row') {
+        if (usePowerup('plus_row')) {
+            const addedIds = addRandomRow();
+            recordAdd(addedIds); 
+            recordPowerupUsage('plus_row');
+            playSound('add');
+            nextTick(() => { measureDimensions(); scrollToBottom(); });
+        }
+    }
+};
+
 const handleUserCellClick = (index: number) => {
-    ensureGameStarted(); // <--- Запускаем таймер
-    playerHandleClick(index); // Вызываем логику игрока
+    ensureGameStarted();
+
+    // 1. Если активен режим Молотка
+    if (activePowerup.value === 'hammer') {
+        const cell = cells.value[index];
+        if (cell && cell.status !== 'crossed') {
+            if (usePowerup('hammer')) {
+                // Записываем удаление одиночной ячейки как match (массив из 1 элемента)
+                history.value.push({ 
+                    type: 'match', 
+                    changes: [{ index, prevStatus: cell.status }] 
+                });
+                
+                destroyCell(index);
+                recordPowerupUsage('hammer');
+                
+                playSound('pop'); 
+                haptic.impact();
+                
+                animateAndClean(); 
+                toggleActive('hammer'); // Выключаем режим после использования
+            }
+        }
+        return;
+    }
+
+    // 2. Обычный клик
+    playerHandleClick(index);
 };
 
 const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStyling({
@@ -329,17 +394,16 @@ const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStylin
 const handleGhostClick = (item: GhostItem) => {
   if (item && item.index !== undefined) {
     scrollToCell(item.index);
-    // Для призраков тоже используем обертку
     setTimeout(() => handleUserCellClick(item.index), GAME_CONFIG.ANIMATION.GHOST_CLICK);
   }
 };
 
-// --- ИЗМЕНЕНИЕ: Бот стартует игру ---
 const handleToggleBot = () => {
-    ensureGameStarted(); // <--- Запускаем таймер
+    ensureGameStarted();
     if (!isBotActive.value) {
         resetSelection();
         clearHintUI();
+        if (activePowerup.value) toggleActive(activePowerup.value);
     }
     toggleBot();
 };
@@ -348,7 +412,12 @@ const { save, load, clear: clearSave } = usePersistence('seeds-save', { cells, s
 
 let autoSaveInterval: ReturnType<typeof setInterval> | null = null;
 
-watch(history, () => { if (!isGameOver.value) save(props.mode, props.levelConfig?.id); }, { deep: false });
+// Обновленный watch: сохраняем также powerups
+watch(history, () => { 
+    if (!isGameOver.value) {
+        save(props.mode, powerups.value, props.levelConfig?.id); 
+    }
+}, { deep: false });
 
 const performUndo = () => {
   if (undo()) {
@@ -389,20 +458,28 @@ const initGame = () => {
   resetSelection();
   clearHintUI();
   clearHistory();
+  // Не сбрасываем powerups здесь, так как логика зависит от загрузки сохранения
   levelStars.value = 0;
-  hasGameStarted.value = false; // Сброс флага старта
+  hasGameStarted.value = false;
 
   if (props.resume) {
     const parsed = load();
     if (parsed) {
         restoreCells(parsed.cells, parsed.nextId || 1000);
         resetTimer(parsed.time);
+        
+        // Восстанавливаем бонусы или ставим дефолт, если сохранения старые
+        if (parsed.powerups) {
+            initPowerups(parsed.powerups);
+        } else {
+            resetPowerups();
+        }
+
         if (parsed.history) {
             clearHistory();
             parsed.history.forEach((h: any) => history.value.push(h));
         }
         
-        // Если это продолжение игры и время уже шло - запускаем сразу
         if (parsed.time > 0) {
             hasGameStarted.value = true;
             startTimer();
@@ -413,12 +490,12 @@ const initGame = () => {
     }
   }
   
+  // Если новая игра
+  resetPowerups();
   incrementGamesStarted(props.mode);
   generateCells(props.mode, props.levelConfig?.pattern);
   resetTimer(0);
   clearSave();
-  
-  // startTimer(); <--- УДАЛЕНО. Таймер запустится при первом клике.
   
   nextTick(() => { measureDimensions(); updateGhosts(); });
 };
@@ -448,7 +525,9 @@ onMounted(() => {
   initGame();
   autoSaveInterval = setInterval(() => {
     // Сохраняем, только если игра идет (есть активные ячейки)
-    if (!isGameOver.value && activeCount.value > 0) save(props.mode, props.levelConfig?.id);
+    if (!isGameOver.value && activeCount.value > 0) {
+        save(props.mode, powerups.value, props.levelConfig?.id);
+    }
   }, 30000);
 });
 
@@ -456,12 +535,26 @@ onUnmounted(() => {
   stopTimer();
   stopBot();
   if (autoSaveInterval) clearInterval(autoSaveInterval);
-  if (!isGameOver.value) save(props.mode, props.levelConfig?.id);
+  if (!isGameOver.value) {
+      save(props.mode, powerups.value, props.levelConfig?.id);
+  }
 });
 </script>
 
 <style scoped>
-/* Стили без изменений */
+/* Дополнительные стили для молотка */
+.cell.hammer-target {
+  cursor: crosshair;
+  animation: pulse-red 1s infinite;
+  border-color: rgb(var(--rgb-red));
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(var(--rgb-red), 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(var(--rgb-red), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--rgb-red), 0); }
+}
+
 .win-stars {
   display: flex;
   gap: 8px;

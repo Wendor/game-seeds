@@ -1,5 +1,5 @@
-import { watch, type Ref } from 'vue';
-import type { Cell, GameMode, SavedGameState, HistoryRecord } from '../types';
+import { toRaw, watch, type Ref } from 'vue';
+import type { Cell, GameMode, SavedGameState, HistoryRecord, PowerupState } from '../types';
 
 interface PersistenceDeps {
     cells: Ref<Cell[]>;
@@ -12,7 +12,7 @@ export function usePersistence(storageKey: string, deps: PersistenceDeps) {
     const { cells, secondsElapsed, history, nextId } = deps;
 
     // Добавляем аргумент levelId
-    const save = (mode: GameMode, levelId?: string) => {
+    const save = (mode: GameMode, powerups: PowerupState, levelId?: string) => {
         const minifiedCells = cells.value.map(c => ({
             id: c.id,
             value: c.value,
@@ -25,7 +25,8 @@ export function usePersistence(storageKey: string, deps: PersistenceDeps) {
             mode: mode,
             history: history.value,
             nextId: nextId.value,
-            levelId: levelId // <--- Сохраняем
+            levelId: levelId,
+            powerups: toRaw(powerups)
         };
 
         try {

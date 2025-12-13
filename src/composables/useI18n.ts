@@ -51,7 +51,14 @@ const dictionary = {
             botGiveUp: 'Бот: Слишком много цифр, я сдаюсь.',
             defeatTitle: 'Игра окончена',
             defeatMsg: 'Поле заполнено, и доступных ходов больше нет.',
-            tryAgain: 'Попробовать снова'
+            tryAgain: 'Попробовать снова',
+            powerups: {
+                title: 'Бонусы',
+                hammer: 'Удалить ячейку',
+                shuffle: 'Перемешать',
+                plus_row: 'Добавить ряд',
+                useHammer: 'Выберите ячейку для удаления'
+            }
         },
         rules: {
             title: 'Как играть?',
@@ -124,7 +131,14 @@ const dictionary = {
             botGiveUp: 'Bot: Too many numbers, I give up.',
             defeatTitle: 'Game Over',
             defeatMsg: 'The board is full and there are no moves left.',
-            tryAgain: 'Try Again'
+            tryAgain: 'Try Again',
+            powerups: {
+                title: 'Powerups',
+                hammer: 'Destroy cell',
+                shuffle: 'Shuffle',
+                plus_row: 'Add row',
+                useHammer: 'Select a cell to destroy'
+            }
         },
         rules: {
             title: 'How to play?',

@@ -8,7 +8,7 @@
       <div class="spacer"></div>
     </div>
 
-    <div class="levels-container">
+    <div class="levels-container" ref="containerRef">
       <div class="levels-grid">
         <div 
           v-for="(level, index) in levels" 
@@ -42,6 +42,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue'; // Добавлены импорты
 import { LEVELS } from '../data/levels';
 import { useStatistics } from '../composables/useStatistics';
 import type { LevelConfig } from '../types';
@@ -54,6 +55,26 @@ const emit = defineEmits<{
 const { getLevelStars } = useStatistics();
 const levels = LEVELS;
 
+// --- ЛОГИКА СКРОЛЛА ---
+const containerRef = ref<HTMLElement | null>(null);
+const SCROLL_KEY = 'seeds-levels-scroll-pos';
+
+// Восстанавливаем позицию при входе
+onMounted(() => {
+  const savedPos = sessionStorage.getItem(SCROLL_KEY);
+  if (savedPos && containerRef.value) {
+    containerRef.value.scrollTop = parseInt(savedPos, 10);
+  }
+});
+
+// Сохраняем позицию перед уходом
+onBeforeUnmount(() => {
+  if (containerRef.value) {
+    sessionStorage.setItem(SCROLL_KEY, String(containerRef.value.scrollTop));
+  }
+});
+// ----------------------
+
 const getStars = (id: string) => getLevelStars(id);
 
 // Логика блокировки
@@ -61,7 +82,6 @@ const isLocked = (index: number) => {
   if (index === 0) return false;
   
   const prevLevel = levels[index - 1];
-  // Исправление ошибки TS: проверяем существование prevLevel
   if (!prevLevel) return true;
 
   const prevStars = getLevelStars(prevLevel.id);
@@ -125,7 +145,6 @@ const handlePlay = (level: LevelConfig, index: number) => {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  /* Добавляем фиксированную высоту, чтобы элементы не прыгали */
   min-height: 100px; 
 }
 

@@ -23,8 +23,10 @@ export interface GameRecord {
 
 export type HistoryRecord =
     | { type: 'match'; changes: { index: number; prevStatus: CellStatus }[] }
-    | { type: 'add'; count: number; ids: number[] } // <-- Добавили ids
-    | { type: 'clean'; removedRows: { index: number; cells: Cell[] }[] };
+    | { type: 'add'; count: number; ids: number[] }
+    | { type: 'clean'; removedRows: { index: number; cells: Cell[] }[] }
+    | { type: 'shuffle'; snapshot: number[] } // Храним слепок значений до перемешивания
+    | { type: 'powerup_usage'; powerup: PowerupType }; // Чтобы вернуть заряд при Undo
 
 export interface SavedGameState {
     cells: Cell[];
@@ -33,6 +35,7 @@ export interface SavedGameState {
     history: HistoryRecord[];
     nextId: number;
     levelId?: string;
+    powerups: PowerupState;
 }
 
 export interface LevelConfig {
@@ -40,4 +43,12 @@ export interface LevelConfig {
     name: string;
     pattern: string[];
     thresholds: [number, number];
+}
+
+export type PowerupType = 'hammer' | 'shuffle' | 'plus_row';
+
+export interface PowerupState {
+    hammer: number;
+    shuffle: number;
+    plus_row: number;
 }
