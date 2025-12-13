@@ -1,5 +1,5 @@
 import { ref, type Ref, onUnmounted, toRaw } from 'vue';
-import type { Cell } from '../types';
+import type { Cell, PowerupState, PowerupType } from '../types';
 import { useI18n } from './useI18n';
 import BotWorker from '../workers/bot.worker?worker';
 import type { SoundName } from '../utils/audio';
@@ -7,6 +7,13 @@ import { GAME_CONFIG } from '../config';
 
 interface BotDependencies {
     cells: Ref<Cell[]>;
+    powerups: Ref<PowerupState>;
+    isBotActiveRef?: Ref<boolean>;
+    powerupActions: {
+        usePowerup: (type: PowerupType) => boolean;
+        handlePowerupClick: (type: PowerupType) => void;
+        handleUserCellClick: (index: number) => void;
+    };
     gameActions: {
         addLines: () => number[] | number;
         cleanEmptyRows: () => number | void;
@@ -29,10 +36,12 @@ interface BotDependencies {
 }
 
 export function useBot(deps: BotDependencies) {
-    const { cells, gameActions, historyActions, uiActions, gameState } = deps;
+    const { cells, powerups, powerupActions, gameActions, historyActions, uiActions, gameState } = deps;
     const { t } = useI18n();
 
-    const isBotActive = ref(false);
+    // Используем переданный ref или создаем новый
+    const isBotActive = deps.isBotActiveRef || ref(false);
+
     let worker: Worker | null = null;
     let botLoopTimeout: number | null = null;
 
@@ -67,16 +76,19 @@ export function useBot(deps: BotDependencies) {
 
         const plainCells = toRaw(cells.value).map(c => toRaw(c));
         const activeWorker = initWorker();
-        activeWorker.postMessage({ type: 'find', cells: plainCells });
+
+        const hasHammer = powerups.value.hammer > 0;
+        activeWorker.postMessage({ type: 'find', cells: plainCells, checkHammer: hasHammer });
     };
 
     const handleWorkerMessage = async (e: MessageEvent) => {
-        const { type, move } = e.data;
+        const { type, move, hammerTarget } = e.data;
 
         if (type === 'moveFound') {
             if (!isBotActive.value) return;
 
             if (move) {
+                // === ОБЫЧНЫЙ ХОД ===
                 const [idx1, idx2] = move;
                 uiActions.scrollToCell(idx1);
 
@@ -94,29 +106,51 @@ export function useBot(deps: BotDependencies) {
                 historyActions.recordClean();
 
                 const removed = gameActions.cleanEmptyRows();
-
-                // Поправлена логика удаления превентивной записи
-                if (typeof removed === 'number' && removed > 0) {
-                    // Синхронно удалилось - оставляем запись
-                } else {
-                    // 0 удалено или запустилась анимация (которая сама запишет) - удаляем дубль
+                if (typeof removed !== 'number' || removed <= 0) {
                     historyActions.popHistory();
                 }
 
                 botLoopTimeout = setTimeout(requestMove, GAME_CONFIG.BOT_ACTION_DELAY);
+
             } else {
+                // === ХОДОВ НЕТ: ИСПОЛЬЗУЕМ БОНУСЫ ===
+                // 1. Молоток
+                if (typeof hammerTarget === 'number' && powerups.value.hammer > 0) {
+                    uiActions.scrollToCell(hammerTarget);
+                    // Уменьшили задержку перед ударом
+                    await new Promise(r => setTimeout(r, 100));
+                    if (!isBotActive.value) return;
+
+                    powerupActions.handlePowerupClick('hammer');
+                    powerupActions.handleUserCellClick(hammerTarget);
+
+                    botLoopTimeout = setTimeout(requestMove, 100);
+                    return;
+                }
+
+                // 2. Перемешивание
+                if (powerups.value.shuffle > 0) {
+                    await new Promise(r => setTimeout(r, 100));
+                    if (!isBotActive.value) return;
+
+                    powerupActions.handlePowerupClick('shuffle');
+
+                    botLoopTimeout = setTimeout(requestMove, 100);
+                    return;
+                }
+
+                // 3. Добавление строк
                 if (cells.value.length >= GAME_CONFIG.MAX_CELLS) {
                     uiActions.showToast(t('game.botGiveUp'));
                     stopBot();
                     return;
                 }
 
-                await new Promise(r => setTimeout(r, 300));
+                // Уменьшили задержку перед добавлением
+                await new Promise(r => setTimeout(r, 100));
                 if (!isBotActive.value) return;
 
-                // Бот использует общую функцию добавления, которая уже пишет в историю
                 gameActions.addLines();
-
                 botLoopTimeout = setTimeout(requestMove, GAME_CONFIG.BOT_ADD_LINES_DELAY);
             }
         }

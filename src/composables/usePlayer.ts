@@ -46,8 +46,10 @@ export function usePlayer(deps: PlayerDeps) {
         neighborIndices.value = [];
     };
 
-    const handleCellClick = (index: number) => {
-        if (state.isBotActive.value) return;
+    // Добавлен аргумент byBot
+    const handleCellClick = (index: number, byBot: boolean = false) => {
+        // Если бот активен, и клик НЕ от бота - блокируем
+        if (state.isBotActive.value && !byBot) return;
 
         uiActions.clearHintUI();
         neighborIndices.value = [];
@@ -88,7 +90,6 @@ export function usePlayer(deps: PlayerDeps) {
 
             if (typeof result === 'number') {
                 if (result > 0) {
-                    // Убрали тост
                     uiActions.playSound('add');
                 } else {
                     historyActions.popHistory();

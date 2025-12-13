@@ -51,7 +51,6 @@ const findNeighbors = (cells: Cell[], index: number): number[] => {
 
     const len = cells.length;
 
-    // Поиск вертикальных соседей
     for (let i = index + ROW_SIZE; i < len; i += ROW_SIZE) {
         const c = cells[i];
         if (c && c.status !== 'crossed') {
@@ -70,6 +69,72 @@ const findNeighbors = (cells: Cell[], index: number): number[] => {
     return neighbors;
 };
 
+// === НОВАЯ ЛОГИКА ДЛЯ МОЛОТКА ===
+
+const findBlockingCell = (cells: Cell[], idx1: number, idx2: number): number => {
+    const c1 = cells[idx1];
+    const c2 = cells[idx2];
+    if (!c1 || !c2) return -1;
+
+    // 1. Горизонтальная проверка (через next/prev)
+    if (c1.next !== null && c1.next !== undefined) {
+        const blockIdx = c1.next;
+        const blockCell = cells[blockIdx];
+        if (blockCell && blockCell.status !== 'crossed' && blockCell.next === idx2) {
+            return blockIdx;
+        }
+    }
+
+    // 2. Вертикальная проверка (в одном столбце)
+    const col1 = idx1 % ROW_SIZE;
+    const col2 = idx2 % ROW_SIZE;
+
+    if (col1 === col2) {
+        const start = Math.min(idx1, idx2);
+        const end = Math.max(idx1, idx2);
+        let activeCount = 0;
+        let lastActiveIdx = -1;
+
+        for (let i = start + ROW_SIZE; i < end; i += ROW_SIZE) {
+            const cell = cells[i];
+            if (cell && cell.status !== 'crossed') {
+                activeCount++;
+                lastActiveIdx = i;
+            }
+        }
+
+        if (activeCount === 1) {
+            return lastActiveIdx;
+        }
+    }
+
+    return -1;
+};
+
+const findHammerMove = (cells: Cell[]): number | null => {
+    const len = cells.length;
+    const limit = Math.min(len, 2000);
+
+    for (let i = 0; i < limit; i++) {
+        const c1 = cells[i];
+        if (!c1 || c1.status === 'crossed') continue;
+
+        const scanLimit = Math.min(len, i + 200);
+        for (let j = i + 1; j < scanLimit; j++) {
+            const c2 = cells[j];
+            if (!c2 || c2.status === 'crossed') continue;
+
+            if (c1.value === c2.value || c1.value + c2.value === 10) {
+                const blocker = findBlockingCell(cells, i, j);
+                if (blocker !== -1) {
+                    return blocker;
+                }
+            }
+        }
+    }
+    return null;
+};
+
 // === Логика оценки хода (Эвристика) ===
 
 const evaluateMove = (cells: Cell[], idx1: number, idx2: number): number => {
@@ -82,18 +147,10 @@ const evaluateMove = (cells: Cell[], idx1: number, idx2: number): number => {
 
     const isVertical = (idx1 % ROW_SIZE) === (idx2 % ROW_SIZE);
 
-    // Вернул высокий приоритет вертикальным ходам.
-    // Это важно, чтобы "разгружать" столбцы.
     if (isVertical) score += GAME_CONFIG.SCORE.VERTICAL;
-
-    // Бонус за одинаковые цифры (они лучше, чем сумма 10, т.к. "чище")
     if (c1.value === c2.value) score += GAME_CONFIG.SCORE.SAME_VALUE;
-
-    // Штраф за позицию (чем дальше, тем меньше приоритет, чтобы чистить с начала)
     score -= (idx1 * GAME_CONFIG.SCORE.POSITION_PENALTY);
 
-    // === ПРОВЕРКА ОТКРЫТИЯ ПАРЫ (Look-ahead) ===
-    // Проверяем, соединятся ли соседи после удаления этой пары
     if (isHorizontalNeighbor(cells, idx1, idx2)) {
         const first = Math.min(idx1, idx2);
         const second = Math.max(idx1, idx2);
@@ -106,9 +163,8 @@ const evaluateMove = (cells: Cell[], idx1: number, idx2: number): number => {
             const next = cells[nextIdx];
 
             if (prev && next && prev.status !== 'crossed' && next.status !== 'crossed') {
-                // Если после хода образуется новая пара - даем бонус
                 if (prev.value === next.value || prev.value + next.value === 10) {
-                    score += GAME_CONFIG.SCORE.CHAIN_REACTION; // Чуть уменьшил бонус, чтобы не перебивать вертикали
+                    score += GAME_CONFIG.SCORE.CHAIN_REACTION;
                 }
             }
         }
@@ -129,7 +185,6 @@ const applyMove = (cells: Cell[], idx1: number, idx2: number): LinkChange[] => {
     c1.status = 'crossed';
     c2.status = 'crossed';
 
-    // Обновляем связи для c1
     if (c1.prev !== null && c1.prev !== undefined) {
         const prevCell = cells[c1.prev];
         if (prevCell) {
@@ -145,7 +200,6 @@ const applyMove = (cells: Cell[], idx1: number, idx2: number): LinkChange[] => {
         }
     }
 
-    // Обновляем связи для c2
     if (c2.prev !== null && c2.prev !== undefined) {
         const prevCell = cells[c2.prev];
         if (prevCell) {
@@ -191,7 +245,6 @@ interface Move {
 const findAllMoves = (cells: Cell[], limit: number = -1): Move[] => {
     const moves: Move[] = [];
     const len = cells.length;
-    // Ограничиваем область поиска на больших полях для скорости
     const iterLimit = len > 4000 ? GAME_CONFIG.BOT_SEARCH_LIMIT : len;
 
     for (let i = 0; i < iterLimit; i++) {
@@ -200,7 +253,6 @@ const findAllMoves = (cells: Cell[], limit: number = -1): Move[] => {
 
         const neighbors = findNeighbors(cells, i);
         for (const nIdx of neighbors) {
-            // Проверяем nIdx > i, чтобы не дублировать пары (1-2 и 2-1)
             if (nIdx > i && canMatch(cells, i, nIdx)) {
                 const score = evaluateMove(cells, i, nIdx);
                 moves.push({ idx1: i, idx2: nIdx, score });
@@ -217,7 +269,6 @@ const findAllMoves = (cells: Cell[], limit: number = -1): Move[] => {
 };
 
 const searchBestMove = (cells: Cell[], depth: number): { score: number, move: [number, number] | null } => {
-    // Увеличили beam width с 5 до 8, чтобы бот смотрел чуть шире
     const candidates = findAllMoves(cells, 8);
 
     if (candidates.length === 0) {
@@ -232,12 +283,8 @@ const searchBestMove = (cells: Cell[], depth: number): { score: number, move: [n
 
         if (depth > 0) {
             const changes = applyMove(cells, move.idx1, move.idx2);
-
-            // Рекурсивный вызов с уменьшенным влиянием будущего
             const nextResult = searchBestMove(cells, depth - 1);
-
-            currentTotal += (nextResult.score * 0.6); // 0.6 коэффициент важности будущего хода
-
+            currentTotal += (nextResult.score * 0.6);
             undoMove(cells, move.idx1, move.idx2, changes);
         }
 
@@ -253,10 +300,18 @@ const searchBestMove = (cells: Cell[], depth: number): { score: number, move: [n
 // === Точка входа ===
 
 self.onmessage = (e: MessageEvent) => {
-    const { type, cells } = e.data;
+    const { type, cells, checkHammer } = e.data;
 
     if (type === 'find') {
         const result = searchBestMove(cells, 1);
-        self.postMessage({ type: 'moveFound', move: result.move });
+
+        if (result.move) {
+            self.postMessage({ type: 'moveFound', move: result.move });
+        } else if (checkHammer) {
+            const hammerTarget = findHammerMove(cells);
+            self.postMessage({ type: 'moveFound', move: null, hammerTarget });
+        } else {
+            self.postMessage({ type: 'moveFound', move: null });
+        }
     }
 };

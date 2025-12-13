@@ -185,6 +185,9 @@ const exitButtonLabel = computed(() => {
 const levelStars = ref(0);
 const hasGameStarted = ref(false);
 
+// === ВАЖНО: Объявляем isBotActive здесь, чтобы разорвать цикл зависимостей ===
+const isBotActive = ref(false);
+
 const { 
   cells, nextId, generateCells, restoreCells, canMatch, addLines, 
   findHint, cleanEmptyRows, findNeighbors, updateLinksAfterCross, rebuildLinks,
@@ -233,7 +236,6 @@ const animateAndClean = (): number | void => {
 
     if (indicesToDelete.length > 0) {
         indicesToDelete.forEach(idx => { 
-            // ИСПРАВЛЕНИЕ: Сохраняем в переменную для TS
             const cell = cells.value[idx];
             if (cell) cell.isDeleting = true; 
         });
@@ -291,7 +293,6 @@ const addLinesWithAnimation = (): number => {
 
         setTimeout(() => {
             for (let i = oldLength; i < cells.value.length; i++) {
-              // ИСПРАВЛЕНИЕ: Сохраняем в переменную для TS
               const cell = cells.value[i];
               if (cell) delete cell.isNew;
             }
@@ -301,14 +302,6 @@ const addLinesWithAnimation = (): number => {
 };
 
 const { hintIndices, showNextHint, clearHintUI, resetHintIndex } = useGameHints({ findHint, scrollToCell, showToast });
-
-const { isBotActive, toggleBot, stopBot } = useBot({
-    cells,
-    gameActions: { addLines: addLinesWithAnimation, cleanEmptyRows: animateAndClean, updateLinksAfterCross },
-    historyActions: { recordMatch, recordAdd, recordClean, popHistory },
-    uiActions: { playSound, showToast, scrollToCell },
-    gameState: { isGameOver }
-});
 
 const performAddLines = () => {
     ensureGameStarted();
@@ -325,30 +318,35 @@ const {
     gameActions: { canMatch, findNeighbors, cleanEmptyRows: animateAndClean, updateLinksAfterCross },
     historyActions: { recordMatch, recordClean, popHistory },
     uiActions: { playSound, showToast, haptic, clearHintUI },
+    // Теперь передаем переменную, объявленную выше
     state: { isBotActive }
 });
 
 // --- ОБРАБОТКА ПРЕДМЕТОВ ---
-const handlePowerupClick = (type: PowerupType) => {
+const handlePowerupClick = (type: PowerupType, byBot: boolean = false) => {
     ensureGameStarted();
-    if (isGameOver.value || isBotActive.value) return;
+    if (isGameOver.value) return;
+    // Разрешаем выполнение, если это бот
+    if (isBotActive.value && !byBot) return;
+    
     if (powerups.value[type] <= 0) return;
 
     if (type === 'hammer') {
         toggleActive('hammer');
-        if (activePowerup.value === 'hammer') {
+        // Не показываем тост игроку, если играет бот (опционально)
+        if (activePowerup.value === 'hammer' && !byBot) {
             showToast(t('game.powerups.useHammer') || 'Выберите ячейку');
         }
     } 
     else if (type === 'shuffle') {
         if (usePowerup('shuffle')) {
-            // 1. Запускаем анимацию на всех активных клетках
+            // 1. Анимация
             cells.value.forEach(c => { 
                 if (c.status !== 'crossed') c.isShuffling = true; 
             });
             playSound('select');
 
-            // 2. В середине анимации меняем значения
+            // 2. Подмена
             setTimeout(() => {
                 recordShuffle();
                 shuffleBoard();
@@ -359,7 +357,7 @@ const handlePowerupClick = (type: PowerupType) => {
                 nextTick(updateGhosts);
             }, 250);
 
-            // 3. Завершаем анимацию
+            // 3. Завершение
             setTimeout(() => {
                 cells.value.forEach(c => { delete c.isShuffling; });
             }, 500);
@@ -387,7 +385,6 @@ const handlePowerupClick = (type: PowerupType) => {
 
             setTimeout(() => {
                 for (let i = oldLength; i < cells.value.length; i++) {
-                    // ИСПРАВЛЕНИЕ: Сохраняем в переменную для TS
                     const cell = cells.value[i];
                     if (cell) delete cell.isNew;
                 }
@@ -396,7 +393,7 @@ const handlePowerupClick = (type: PowerupType) => {
     }
 };
 
-const handleUserCellClick = (index: number) => {
+const handleUserCellClick = (index: number, byBot: boolean = false) => {
     ensureGameStarted();
 
     // 1. Если активен режим Молотка
@@ -422,12 +419,12 @@ const handleUserCellClick = (index: number) => {
         return;
     }
 
-    // 2. Обычный клик
-    playerHandleClick(index);
+    // 2. Обычный клик (передаем флаг дальше)
+    playerHandleClick(index, byBot);
 };
 
 const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStyling({
-    isBotActive,
+    isBotActive, // Теперь переменная существует
     neighborIndices,
     selectedIndex,
     hintIndices,
@@ -440,6 +437,24 @@ const handleGhostClick = (item: GhostItem) => {
     setTimeout(() => handleUserCellClick(item.index), GAME_CONFIG.ANIMATION.GHOST_CLICK);
   }
 };
+
+// Объект действий для бота
+const powerupActions = {
+    usePowerup,
+    handlePowerupClick: (type: PowerupType) => handlePowerupClick(type, true),
+    handleUserCellClick: (index: number) => handleUserCellClick(index, true),
+};
+
+const { toggleBot, stopBot } = useBot({
+    cells,
+    powerups,
+    powerupActions,
+    isBotActiveRef: isBotActive, // Передаем реф
+    gameActions: { addLines: addLinesWithAnimation, cleanEmptyRows: animateAndClean, updateLinksAfterCross },
+    historyActions: { recordMatch, recordAdd, recordClean, popHistory },
+    uiActions: { playSound, showToast, scrollToCell },
+    gameState: { isGameOver }
+});
 
 const handleToggleBot = () => {
     ensureGameStarted();
