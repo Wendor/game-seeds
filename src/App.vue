@@ -15,18 +15,18 @@
 
       <Levels 
         v-else-if="currentScreen === 'levels'"
-        @back="currentScreen = 'menu'"
+        @back="goBack" 
         @play="handleStartLevel"
       />
 
       <Rules 
         v-else-if="currentScreen === 'rules'" 
-        @close="currentScreen = 'menu'"
+        @close="goBack"
       />
       
       <Leaderboard
         v-else-if="currentScreen === 'leaderboard'"
-        @close="currentScreen = 'menu'"
+        @close="goBack"
       />
 
       <Game 
@@ -45,38 +45,70 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import MainMenu from './scenes/MainMenu.vue';
 import Rules from './scenes/Rules.vue';
 import Game from './scenes/Game.vue';
 import Leaderboard from './scenes/Leaderboard.vue';
 import Levels from './scenes/Levels.vue';
-import type { GameMode, LevelConfig } from './types';
+import type { GameMode, LevelConfig, ScreenName } from './types';
+
 import { useI18n } from './composables/useI18n';
-import { LEVELS } from './data/levels';
-import { useDebug } from './composables/useDebug';
 
-const { initLanguage } = useI18n();
-const { initDebug } = useDebug();
-initLanguage();
-initDebug();
 
-type ScreenType = 'menu' | 'rules' | 'game' | 'leaderboard' | 'levels';
-
-const currentScreen = ref<ScreenType>('menu');
-const activeGameMode = ref<GameMode>('classic');
-const activeLevelConfig = ref<LevelConfig | undefined>(undefined);
-const isResumeGame = ref(false);
-const restartCounter = ref(0);
-
+// Состояние
+const currentScreen = ref<ScreenName>('menu');
 const isDark = ref(false);
+const activeGameMode = ref<GameMode>('classic');
+const isResumeGame = ref(false);
+const gameKey = ref(0);
+const activeLevelConfig = ref<LevelConfig | undefined>(undefined);
 
-const updateMetaThemeColor = (dark: boolean) => {
-  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-  if (metaThemeColor) {
-    metaThemeColor.setAttribute('content', dark ? '#0f172a' : '#ffffff');
+// Композаблы
+const { initLanguage } = useI18n();
+
+// --- ЛОГИКА КНОПКИ НАЗАД (HISTORY API) ---
+
+// Флаг, чтобы отличать программный переход от нажатия кнопки "Назад" в браузере
+const isPopState = ref(false);
+
+// Обработчик системной кнопки "Назад"
+const handlePopState = (event: PopStateEvent) => {
+  isPopState.value = true;
+  
+  if (event.state && event.state.screen) {
+    currentScreen.value = event.state.screen;
+  } else {
+    // Если истории нет, возвращаемся в меню
+    currentScreen.value = 'menu';
+  }
+  
+  nextTick(() => {
+    isPopState.value = false;
+  });
+};
+
+// Функция для навигации "Назад" через интерфейс
+const goBack = () => {
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    currentScreen.value = 'menu';
   }
 };
+
+// Следим за переключением экранов, чтобы добавлять записи в историю
+watch(currentScreen, (newScreen) => {
+  // Если смена экрана произошла НЕ из-за кнопки "Назад" (isPopState === false)
+  if (!isPopState.value) {
+    // Если мы уходим из меню или идем глубже, пушим состояние
+    if (newScreen !== 'menu') {
+      window.history.pushState({ screen: newScreen }, '');
+    }
+  }
+});
+
+// --- ЛОГИКА ИГРЫ ---
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
@@ -90,86 +122,68 @@ const updateBodyClass = () => {
   } else {
     document.body.classList.remove('dark-mode');
   }
-  updateMetaThemeColor(isDark.value);
 };
-
-onMounted(() => {
-  const savedTheme = localStorage.getItem('seeds-theme');
-  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-
-  if (savedTheme === 'dark') {
-    isDark.value = true;
-  } else if (savedTheme === 'light') {
-    isDark.value = false;
-  } else {
-    isDark.value = systemPrefersDark.matches;
-  }
-  
-  updateBodyClass();
-
-  systemPrefersDark.addEventListener('change', (e) => {
-    if (!localStorage.getItem('seeds-theme')) {
-      isDark.value = e.matches;
-      updateBodyClass();
-    }
-  });
-});
-
-const gameKey = computed(() => `${activeGameMode.value}-${restartCounter.value}`);
 
 const handleStartGame = (mode: GameMode) => {
   activeGameMode.value = mode;
-  activeLevelConfig.value = undefined;
   isResumeGame.value = false;
-  restartCounter.value++;
-  currentScreen.value = 'game';
-};
-
-const handleStartLevel = (level: LevelConfig) => {
-  activeGameMode.value = 'levels';
-  activeLevelConfig.value = level;
-  isResumeGame.value = false;
-  restartCounter.value++;
+  
+  // Если режим не уровни, очищаем конфиг уровня
+  if (mode !== 'levels') {
+    activeLevelConfig.value = undefined;
+  }
+  
+  gameKey.value++; // Форсируем пересоздание компонента Game
   currentScreen.value = 'game';
 };
 
 const handleContinueGame = () => {
-  const savedData = localStorage.getItem('seeds-save');
-  if (savedData) {
-    try {
-      const parsed = JSON.parse(savedData);
-      if (parsed.mode) {
-        activeGameMode.value = parsed.mode;
-        
-        if (parsed.mode === 'levels' && parsed.levelId) {
-          activeLevelConfig.value = LEVELS.find(l => l.id === parsed.levelId);
-        } else {
-          activeLevelConfig.value = undefined;
-        }
-      }
-    } catch (e) {
-      console.error('Ошибка чтения сохранения', e);
-    }
-  }
-
+  // Устанавливаем флаг продолжения. Сам компонент Game загрузит сохранение при маунте.
   isResumeGame.value = true;
+  gameKey.value++;
   currentScreen.value = 'game';
+};
+
+const handleStartLevel = (config: LevelConfig) => {
+  activeLevelConfig.value = config;
+  handleStartGame('levels');
 };
 
 const handleRestart = () => {
   isResumeGame.value = false;
-  restartCounter.value++;
+  gameKey.value++;
 };
 
-// ОБРАБОТКА НАВИГАЦИИ НАЗАД
 const handleGameBack = () => {
-  if (activeGameMode.value === 'levels') {
-    currentScreen.value = 'levels';
-  } else {
-    currentScreen.value = 'menu';
-  }
+  // Используем общую функцию навигации назад
+  goBack();
 };
+
+onMounted(() => {
+  // Инициализация темы
+  const savedTheme = localStorage.getItem('seeds-theme');
+  if (savedTheme) {
+    isDark.value = savedTheme === 'dark';
+  } else {
+    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  updateBodyClass();
+
+  // Инициализация языка
+  initLanguage();
+
+  // Инициализация History API
+  if (!window.history.state) {
+    window.history.replaceState({ screen: 'menu' }, '');
+  }
+  window.addEventListener('popstate', handlePopState);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('popstate', handlePopState);
+});
 </script>
+
 
 <style>
 *, *::before, *::after {

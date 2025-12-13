@@ -51,3 +51,5 @@ export type PowerupType = 'hammer' | 'shuffle' | 'plus_row';
 export interface PowerupState {
     amount: number;
 }
+
+export type ScreenName = 'menu' | 'game' | 'levels' | 'rules' | 'leaderboard';
