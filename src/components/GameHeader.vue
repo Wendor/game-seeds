@@ -1,7 +1,7 @@
 <template>
   <header class="header">
     <button @click="$emit('back')" class="btn btn-secondary btn-sm back-btn">
-      <span class="back-arrow">←</span> {{ t('game.menu') }}
+      <span class="back-arrow">←</span> {{ backText || t('game.menu') }}
     </button>
     <div class="timer" :class="{ finished: isGameOver }">⏱ {{ time }}</div>
     <div class="stats">{{ t('game.total') }}: <strong>{{ activeCount }}</strong></div>
@@ -15,6 +15,7 @@ defineProps<{
   time: string;
   activeCount: number;
   isGameOver: boolean;
+  backText?: string;
 }>();
 
 defineEmits(['back']);
@@ -23,7 +24,6 @@ const { t } = useI18n();
 </script>
 
 <style scoped>
-/* Дополнительные стили, если нужно, или полагаемся на global css */
 .back-btn {
   display: inline-flex;
   align-items: center;

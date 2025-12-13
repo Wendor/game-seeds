@@ -35,7 +35,7 @@
         :resume="isResumeGame"
         :level-config="activeLevelConfig"
         :key="gameKey"
-        @back="currentScreen = 'menu'"
+        @back="handleGameBack"
         @restart="handleRestart"
       />
       
@@ -137,7 +137,6 @@ const handleContinueGame = () => {
       if (parsed.mode) {
         activeGameMode.value = parsed.mode;
         
-        // Восстанавливаем конфиг уровня, если это режим уровней
         if (parsed.mode === 'levels' && parsed.levelId) {
           activeLevelConfig.value = LEVELS.find(l => l.id === parsed.levelId);
         } else {
@@ -156,6 +155,15 @@ const handleContinueGame = () => {
 const handleRestart = () => {
   isResumeGame.value = false;
   restartCounter.value++;
+};
+
+// ОБРАБОТКА НАВИГАЦИИ НАЗАД
+const handleGameBack = () => {
+  if (activeGameMode.value === 'levels') {
+    currentScreen.value = 'levels';
+  } else {
+    currentScreen.value = 'menu';
+  }
 };
 </script>
 

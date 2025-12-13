@@ -28,6 +28,7 @@
       :time="formattedTime"
       :active-count="activeCount"
       :is-game-over="isGameOver"
+      :back-text="backButtonLabel"
       @back="$emit('back')"
     />
 
@@ -66,7 +67,7 @@
             class="cell"
             :data-index="cellData.originalIndex"
             :class="getCellClasses(cellData.cell, cellData.originalIndex)"
-            @click="handleCellClick(cellData.originalIndex)"
+            @click="handleUserCellClick(cellData.originalIndex)" 
           >
             {{ cellData.cell.value }}
           </div>
@@ -104,7 +105,9 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
             {{ t('game.share') }}
           </button>
-          <button @click="$emit('back')" class="btn btn-primary btn-lg">{{ t('game.toMenu') }}</button>
+          <button @click="$emit('back')" class="btn btn-primary btn-lg">
+            {{ exitButtonLabel }}
+          </button>
         </div>
       </div>
     </main>
@@ -127,6 +130,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import type { GameMode, LevelConfig } from '../types';
 import { GAME_CONFIG } from '../config';
 
+// Composables
 import { useGameLogic } from '../composables/useGameLogic';
 import { useTimer } from '../composables/useTimer';
 import { useHistory } from '../composables/useHistory';
@@ -140,6 +144,7 @@ import { useStatistics } from '../composables/useStatistics';
 import { useGridVirtualization } from '../composables/useGridVirtualization';
 import { useCellStyling } from '../composables/useCellStyling';
 
+// Components
 import Toast from '../components/Toast.vue';
 import Modal from '../components/Modal.vue';
 import GameHeader from '../components/GameHeader.vue';
@@ -158,7 +163,18 @@ const props = defineProps<{
 
 const emit = defineEmits(['back', 'restart']);
 
+// --- ТЕКСТ КНОПОК ---
+const backButtonLabel = computed(() => {
+  return props.mode === 'levels' ? t('game.toLevels') : t('game.menu');
+});
+
+const exitButtonLabel = computed(() => {
+  return props.mode === 'levels' ? t('game.toLevelsBtn') : t('game.toMenu');
+});
+
 const levelStars = ref(0);
+// --- НОВОЕ СОСТОЯНИЕ: Флаг старта игры ---
+const hasGameStarted = ref(false);
 
 const { 
   cells, nextId, generateCells, restoreCells, canMatch, addLines, 
@@ -175,6 +191,14 @@ const showDefeatModal = ref(false);
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => nextId.value > 0 && activeCount.value === 0);
 
+// --- НОВАЯ ФУНКЦИЯ: Запуск таймера при первом действии ---
+const ensureGameStarted = () => {
+  if (!hasGameStarted.value) {
+    hasGameStarted.value = true;
+    startTimer();
+  }
+};
+
 const { 
   gridContainerRef, gridRef, handleScroll, visibleRows, 
   spacerTop, spacerBottom, topGhosts, bottomGhosts, 
@@ -185,6 +209,7 @@ const {
 type GhostItem = { value: number; index: number } | null;
 
 const animateAndClean = (): number | void => {
+    // ... (код animateAndClean без изменений) ...
     const ROW_SIZE = GAME_CONFIG.ROW_SIZE;
     const indicesToDelete: number[] = [];
     for (let i = 0; i < cells.value.length; i += ROW_SIZE) {
@@ -227,7 +252,6 @@ const addLinesWithAnimation = (): number => {
     }
 
     const oldLength = cells.value.length;
-    // ТЕПЕРЬ ПОЛУЧАЕМ МАССИВ ID
     const addedIds = addLines(props.mode);
     const count = Array.isArray(addedIds) ? addedIds.length : addedIds; 
     
@@ -235,7 +259,6 @@ const addLinesWithAnimation = (): number => {
       for (let i = oldLength; i < cells.value.length; i++) {
           cells.value[i]!.isNew = true;
       }
-        // ПЕРЕДАЕМ ID В ИСТОРИЮ
         recordAdd(addedIds);
         playSound('add');
         haptic.impact();
@@ -269,18 +292,31 @@ const { isBotActive, toggleBot, stopBot } = useBot({
     gameState: { isGameOver }
 });
 
+// --- ИЗМЕНЕНИЕ: Добавление строк стартует игру ---
 const performAddLines = () => {
+    ensureGameStarted(); // <--- Запускаем таймер
     const count = addLinesWithAnimation();
     if (count > 0) showToast(t('game.added', { n: count }));
 };
 
-const { selectedIndex, neighborIndices, handleCellClick, resetSelection } = usePlayer({
+// Переименовываем исходный handleCellClick, чтобы обернуть его
+const { 
+    selectedIndex, neighborIndices, 
+    handleCellClick: playerHandleClick, // <-- переименовали
+    resetSelection 
+} = usePlayer({
     cells,
     gameActions: { canMatch, findNeighbors, cleanEmptyRows: animateAndClean, updateLinksAfterCross },
     historyActions: { recordMatch, recordClean, popHistory },
     uiActions: { playSound, showToast, haptic, clearHintUI },
     state: { isBotActive }
 });
+
+// --- НОВАЯ ФУНКЦИЯ: Обертка для клика пользователя ---
+const handleUserCellClick = (index: number) => {
+    ensureGameStarted(); // <--- Запускаем таймер
+    playerHandleClick(index); // Вызываем логику игрока
+};
 
 const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStyling({
     isBotActive,
@@ -293,11 +329,14 @@ const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStylin
 const handleGhostClick = (item: GhostItem) => {
   if (item && item.index !== undefined) {
     scrollToCell(item.index);
-    setTimeout(() => handleCellClick(item.index), GAME_CONFIG.ANIMATION.GHOST_CLICK);
+    // Для призраков тоже используем обертку
+    setTimeout(() => handleUserCellClick(item.index), GAME_CONFIG.ANIMATION.GHOST_CLICK);
   }
 };
 
+// --- ИЗМЕНЕНИЕ: Бот стартует игру ---
 const handleToggleBot = () => {
+    ensureGameStarted(); // <--- Запускаем таймер
     if (!isBotActive.value) {
         resetSelection();
         clearHintUI();
@@ -309,11 +348,7 @@ const { save, load, clear: clearSave } = usePersistence('seeds-save', { cells, s
 
 let autoSaveInterval: ReturnType<typeof setInterval> | null = null;
 
-watch(history, () => { 
-    if (!isGameOver.value) {
-        save(props.mode, props.levelConfig?.id); 
-    }
-}, { deep: false });
+watch(history, () => { if (!isGameOver.value) save(props.mode, props.levelConfig?.id); }, { deep: false });
 
 const performUndo = () => {
   if (undo()) {
@@ -355,6 +390,7 @@ const initGame = () => {
   clearHintUI();
   clearHistory();
   levelStars.value = 0;
+  hasGameStarted.value = false; // Сброс флага старта
 
   if (props.resume) {
     const parsed = load();
@@ -365,7 +401,13 @@ const initGame = () => {
             clearHistory();
             parsed.history.forEach((h: any) => history.value.push(h));
         }
-        startTimer();
+        
+        // Если это продолжение игры и время уже шло - запускаем сразу
+        if (parsed.time > 0) {
+            hasGameStarted.value = true;
+            startTimer();
+        }
+        
         nextTick(() => { measureDimensions(); updateGhosts(); });
         return;
     }
@@ -375,7 +417,9 @@ const initGame = () => {
   generateCells(props.mode, props.levelConfig?.pattern);
   resetTimer(0);
   clearSave();
-  startTimer();
+  
+  // startTimer(); <--- УДАЛЕНО. Таймер запустится при первом клике.
+  
   nextTick(() => { measureDimensions(); updateGhosts(); });
 };
 
@@ -403,7 +447,8 @@ const shareResult = async () => {
 onMounted(() => {
   initGame();
   autoSaveInterval = setInterval(() => {
-    if (!isGameOver.value && activeCount.value > 0) save(props.mode);
+    // Сохраняем, только если игра идет (есть активные ячейки)
+    if (!isGameOver.value && activeCount.value > 0) save(props.mode, props.levelConfig?.id);
   }, 30000);
 });
 
@@ -411,13 +456,12 @@ onUnmounted(() => {
   stopTimer();
   stopBot();
   if (autoSaveInterval) clearInterval(autoSaveInterval);
-  if (!isGameOver.value) {
-      save(props.mode, props.levelConfig?.id);
-  }
+  if (!isGameOver.value) save(props.mode, props.levelConfig?.id);
 });
 </script>
 
 <style scoped>
+/* Стили без изменений */
 .win-stars {
   display: flex;
   gap: 8px;
