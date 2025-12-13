@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../config';
 import type { Cell } from '../types';
+import { canMatch, findNeighbors, isHorizontalNeighbor } from '../utils/gameRules';
 
 const ROW_SIZE = GAME_CONFIG.ROW_SIZE;
 
@@ -9,74 +10,11 @@ interface LinkChange {
     oldValue: number | null | undefined;
 }
 
-const isHorizontalNeighbor = (cells: Cell[], idx1: number, idx2: number): boolean => {
-    const c1 = cells[idx1];
-    if (!c1) return false;
-    return c1.next === idx2 || c1.prev === idx2;
-};
-
-const isVerticalNeighbor = (cells: Cell[], idx1: number, idx2: number): boolean => {
-    const col1 = idx1 % ROW_SIZE;
-    const col2 = idx2 % ROW_SIZE;
-    if (col1 !== col2) return false;
-
-    const start = Math.min(idx1, idx2);
-    const end = Math.max(idx1, idx2);
-
-    for (let i = start + ROW_SIZE; i < end; i += ROW_SIZE) {
-        const cell = cells[i];
-        if (cell && cell.status !== 'crossed') return false;
-    }
-    return true;
-};
-
-const canMatch = (cells: Cell[], idx1: number, idx2: number): boolean => {
-    const c1 = cells[idx1];
-    const c2 = cells[idx2];
-
-    if (!c1 || !c2) return false;
-    if (c1.status === 'crossed' || c2.status === 'crossed') return false;
-    if (c1.value !== c2.value && c1.value + c2.value !== 10) return false;
-
-    return isHorizontalNeighbor(cells, idx1, idx2) || isVerticalNeighbor(cells, idx1, idx2);
-};
-
-const findNeighbors = (cells: Cell[], index: number): number[] => {
-    const neighbors: number[] = [];
-    const cell = cells[index];
-    if (!cell) return [];
-
-    if (cell.prev !== null && cell.prev !== undefined) neighbors.push(cell.prev);
-    if (cell.next !== null && cell.next !== undefined) neighbors.push(cell.next);
-
-    const len = cells.length;
-
-    for (let i = index + ROW_SIZE; i < len; i += ROW_SIZE) {
-        const c = cells[i];
-        if (c && c.status !== 'crossed') {
-            neighbors.push(i);
-            break;
-        }
-    }
-    for (let i = index - ROW_SIZE; i >= 0; i -= ROW_SIZE) {
-        const c = cells[i];
-        if (c && c.status !== 'crossed') {
-            neighbors.push(i);
-            break;
-        }
-    }
-
-    return neighbors;
-};
-
-// === НОВАЯ ЛОГИКА ДЛЯ МОЛОТКА ===
-
 const findBlockingCell = (cells: Cell[], idx1: number, idx2: number): number => {
     const c1 = cells[idx1];
     const c2 = cells[idx2];
     if (!c1 || !c2) return -1;
 
-    // 1. Горизонтальная проверка (через next/prev)
     if (c1.next !== null && c1.next !== undefined) {
         const blockIdx = c1.next;
         const blockCell = cells[blockIdx];
@@ -85,7 +23,6 @@ const findBlockingCell = (cells: Cell[], idx1: number, idx2: number): number => 
         }
     }
 
-    // 2. Вертикальная проверка (в одном столбце)
     const col1 = idx1 % ROW_SIZE;
     const col2 = idx2 % ROW_SIZE;
 
@@ -135,8 +72,6 @@ const findHammerMove = (cells: Cell[]): number | null => {
     return null;
 };
 
-// === Логика оценки хода (Эвристика) ===
-
 const evaluateMove = (cells: Cell[], idx1: number, idx2: number): number => {
     const c1 = cells[idx1];
     const c2 = cells[idx2];
@@ -172,8 +107,6 @@ const evaluateMove = (cells: Cell[], idx1: number, idx2: number): number => {
 
     return score;
 };
-
-// === Логика симуляции (Apply / Undo) ===
 
 const applyMove = (cells: Cell[], idx1: number, idx2: number): LinkChange[] => {
     const changes: LinkChange[] = [];
@@ -228,13 +161,10 @@ const undoMove = (cells: Cell[], idx1: number, idx2: number, changes: LinkChange
 
         const cell = cells[change.index];
         if (cell) {
-            // @ts-ignore
             cell[change.field] = change.oldValue;
         }
     }
 };
-
-// === Рекурсивный поиск (Beam Search) ===
 
 interface Move {
     idx1: number;
@@ -296,8 +226,6 @@ const searchBestMove = (cells: Cell[], depth: number): { score: number, move: [n
 
     return { score: bestTotalScore, move: bestMove };
 };
-
-// === Точка входа ===
 
 self.onmessage = (e: MessageEvent) => {
     const { type, cells, checkHammer } = e.data;

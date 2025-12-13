@@ -1,6 +1,7 @@
 import { ref, toRaw } from 'vue';
 import { GAME_CONFIG } from '../config';
 import type { Cell, GameMode, CellStatus } from '../types';
+import { canMatch as ruleCanMatch, findNeighbors as ruleFindNeighbors } from '../utils/gameRules';
 
 const SEQUENCE_CLASSIC = [
     1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -77,45 +78,11 @@ export function useGameLogic() {
     };
 
     const findNeighbors = (index: number): number[] => {
-        const rawCells = toRaw(cells.value);
-        const cell = rawCells[index];
-        if (!cell) return [];
-
-        const neighbors: number[] = [];
-
-        if (cell.prev !== null && cell.prev !== undefined) neighbors.push(cell.prev);
-        if (cell.next !== null && cell.next !== undefined) neighbors.push(cell.next);
-
-        if (cell.up !== null && cell.up !== undefined && !neighbors.includes(cell.up)) {
-            neighbors.push(cell.up);
-        }
-        if (cell.down !== null && cell.down !== undefined && !neighbors.includes(cell.down)) {
-            neighbors.push(cell.down);
-        }
-
-        return neighbors;
-    };
-
-    const isHorizontalNeighbor = (idx1: number, idx2: number): boolean => {
-        const c = toRaw(cells.value[idx1]);
-        return !!c && (c.next === idx2 || c.prev === idx2);
-    };
-
-    const isVerticalNeighbor = (idx1: number, idx2: number): boolean => {
-        const c = toRaw(cells.value[idx1]);
-        return !!c && (c.down === idx2 || c.up === idx2);
+        return ruleFindNeighbors(toRaw(cells.value), index);
     };
 
     const canMatch = (idx1: number, idx2: number): boolean => {
-        const c1 = cells.value[idx1];
-        const c2 = cells.value[idx2];
-
-        if (!c1 || !c2) return false;
-        if (c1.status === 'crossed' || c2.status === 'crossed') return false;
-
-        if (c1.value !== c2.value && c1.value + c2.value !== 10) return false;
-
-        return isHorizontalNeighbor(idx1, idx2) || isVerticalNeighbor(idx1, idx2);
+        return ruleCanMatch(toRaw(cells.value), idx1, idx2);
     };
 
     const generateCells = (mode: GameMode, levelPattern?: string[]) => {
@@ -186,7 +153,6 @@ export function useGameLogic() {
 
         cells.value.push(...newCells);
         rebuildLinks();
-        // ВАЖНО: Возвращаем ID, а не просто длину
         return newCells.map(c => c.id);
     };
 
@@ -198,11 +164,12 @@ export function useGameLogic() {
             const c1 = rawCells[i];
             if (!c1 || c1.status === 'crossed') continue;
 
-            if (c1.next !== null && c1.next !== undefined) {
-                if (canMatch(i, c1.next)) return [i, c1.next];
-            }
-            if (c1.down !== null && c1.down !== undefined) {
-                if (canMatch(i, c1.down)) return [i, c1.down];
+            // Hint logic can rely on neighbors logic
+            const neighbors = findNeighbors(i);
+            for (const nIdx of neighbors) {
+                if (nIdx > i && canMatch(i, nIdx)) {
+                    return [i, nIdx];
+                }
             }
         }
         return null;
@@ -235,7 +202,6 @@ export function useGameLogic() {
         return rowsRemoved;
     };
 
-    // 1. Перемешивание (только активные ячейки меняются местами)
     const shuffleBoard = () => {
         const rawCells = toRaw(cells.value);
         const activeIndices: number[] = [];
@@ -248,7 +214,6 @@ export function useGameLogic() {
             }
         });
 
-        // Исправлено: добавлены восклицательные знаки (!)
         for (let i = activeValues.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             const temp = activeValues[i]!;
@@ -256,7 +221,6 @@ export function useGameLogic() {
             activeValues[j] = temp;
         }
 
-        // Исправлено: проверка на существование ячейки перед присвоением
         activeIndices.forEach((cellIndex, i) => {
             const newVal = activeValues[i];
             const targetCell = cells.value[cellIndex];
@@ -269,9 +233,7 @@ export function useGameLogic() {
         rebuildLinks();
     };
 
-    // 2. Добавление одной случайной строки (9 чисел)
     const addRandomRow = () => {
-        // Собираем уникальные значения, которые ЕСТЬ на поле и НЕ зачеркнуты
         const existingValues = new Set<number>();
         cells.value.forEach(cell => {
             if (cell.status !== 'crossed') {
@@ -279,8 +241,6 @@ export function useGameLogic() {
             }
         });
 
-        // Если поле пустое (теоретически невозможно, но для безопасности) или все зачеркнуто - берем 1-9
-        // Иначе берем массив из имеющихся чисел
         const sourceNumbers = existingValues.size > 0
             ? Array.from(existingValues)
             : [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -301,7 +261,6 @@ export function useGameLogic() {
         return newCells.map(c => c.id);
     };
 
-    // 3. Удаление одной ячейки (Молоток/Бомба)
     const destroyCell = (index: number) => {
         const cell = cells.value[index];
         if (cell && cell.status !== 'crossed') {

@@ -118,7 +118,7 @@ export function useBot(deps: BotDependencies) {
                 // === ХОДОВ НЕТ: ИСПОЛЬЗУЕМ БОНУСЫ ===
 
                 // ИСПРАВЛЕНО: Проверяем powerups.value.amount
-                const hasCharges = powerups.value.amount > 0;
+                const hasCharges = powerups.value.amount > 10;
 
                 // 1. Молоток (Если есть цель И есть общий заряд)
                 if (typeof hammerTarget === 'number' && hasCharges) {

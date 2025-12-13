@@ -362,8 +362,23 @@ body.dark-mode .ghost-cell.is-matchable {
 
 .win-actions {
     display: flex;
-    gap: 10px;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
     margin-top: 10px;
+}
+
+.primary-actions {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.secondary-actions {
+    display: flex;
+    gap: 12px;
+    width: 100%;
 }
 
 .btn-success {
@@ -533,5 +548,99 @@ body.dark-mode .ghost-cell.is-matchable {
     100% {
         transform: scale(1);
         opacity: 1;
+    }
+}
+
+/* === ЗВЕЗДЫ ПОБЕДЫ === */
+.win-stars {
+    display: flex;
+    gap: 8px;
+    margin: 10px 0;
+    justify-content: center;
+}
+
+.big-star {
+    font-size: 3rem;
+    color: var(--border-color);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.big-star.filled {
+    color: rgb(var(--rgb-yellow));
+    transform: scale(1.1);
+    filter: drop-shadow(0 4px 0px rgba(0, 0, 0, 0.1));
+    animation: popInStar 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+}
+
+.big-star.filled:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.big-star.filled:nth-child(2) {
+    animation-delay: 0.3s;
+}
+
+.big-star.filled:nth-child(3) {
+    animation-delay: 0.5s;
+}
+
+@keyframes popInStar {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* === КНОПКИ БОЛЬШИЕ === */
+.btn-big {
+    height: 56px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    padding: 0 24px;
+}
+
+.btn-big svg {
+    width: 24px;
+    height: 24px;
+}
+
+.btn-square {
+    width: 56px;
+    padding: 0;
+    flex: 0 0 auto;
+}
+
+.btn-grow {
+    flex: 1;
+    gap: 8px;
+}
+
+/* === МОЛОТОК (TARGET) === */
+.cell.hammer-target {
+    cursor: crosshair;
+    animation: pulse-red 1s infinite;
+    border-color: rgb(var(--rgb-red));
+}
+
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--rgb-red), 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(var(--rgb-red), 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--rgb-red), 0);
     }
 }

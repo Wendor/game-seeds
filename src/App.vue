@@ -37,6 +37,7 @@
         :key="gameKey"
         @back="handleGameBack"
         @restart="handleRestart"
+        @next-level="handleStartLevel"
       />
       
     </Transition>

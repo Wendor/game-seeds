@@ -85,6 +85,7 @@ import { useI18n } from '../composables/useI18n';
 import { useDebug } from '../composables/useDebug';
 import { useFeedback } from '../composables/useFeedback';
 import Toast from '../components/Toast.vue';
+import { LEVELS } from '../data/levels';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -116,16 +117,27 @@ const hasSave = computed(() => !!savedGame.value);
 
 const saveInfo = computed(() => {
   if (!savedGame.value) return '';
-  let modeKey = 'stats.classic';
-  if (savedGame.value.mode === 'random') modeKey = 'stats.random';
-  if (savedGame.value.mode === 'easy') modeKey = 'stats.easy';
-  if (savedGame.value.mode === 'levels') modeKey = 'stats.levels';
+  let modeText = '';
+
+  if (savedGame.value.mode === 'levels' && savedGame.value.levelId) {
+    const levelIndex = LEVELS.findIndex(l => l.id === savedGame.value!.levelId);
+    if (levelIndex !== -1) {
+      modeText = t('stats.level', { n: levelIndex + 1 });
+    } else {
+      modeText = t('stats.levels');
+    }
+  } else {
+    let modeKey = 'stats.classic';
+    if (savedGame.value.mode === 'random') modeKey = 'stats.random';
+    if (savedGame.value.mode === 'easy') modeKey = 'stats.easy';
+    modeText = t(modeKey);
+  }
 
   const m = Math.floor(savedGame.value.time / 60).toString().padStart(2, '0');
   const s = (savedGame.value.time % 60).toString().padStart(2, '0');
   const timeStr = `${m}:${s}`;
   
-  return t('menu.saveInfo', { mode: t(modeKey), time: timeStr });
+  return t('menu.saveInfo', { mode: modeText, time: timeStr });
 });
 
 const handleVersionClick = () => {
