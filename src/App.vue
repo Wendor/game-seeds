@@ -98,9 +98,9 @@ const goBack = () => {
   }
 };
 
-watch(currentScreen, (newScreen, oldScreen) => {
+watch(currentScreen, (newScreen: ScreenName, oldScreen: ScreenName) => {
   const newDepth = SCREEN_DEPTH[newScreen] || 0;
-  const oldDepth = SCREEN_DEPTH[oldScreen as ScreenName] || 0;
+  const oldDepth = SCREEN_DEPTH[oldScreen] || 0;
 
   if (newDepth > oldDepth) {
     transitionName.value = 'slide-left';
