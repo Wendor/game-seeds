@@ -35,9 +35,9 @@
         ]"
         :disabled="isGameOver || isBotActive"
         @click="toggleDropdown"
-        :title="t('game.powerups.title') || 'Бонусы'"
+        :title="t('game.powerups.title')"
       >
-        <div v-if="totalPowerups > 0" class="total-badge">{{ totalPowerups }}</div>
+        <div v-if="powerups.amount > 0" class="total-badge">{{ powerups.amount }}</div>
 
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -46,9 +46,10 @@
 
       <Transition name="fade-up">
         <div v-if="showDropdown" class="dropdown-content">
+          
           <button 
             class="dropdown-item" 
-            :class="{ 'item-active': activePowerup === 'hammer', disabled: powerups.hammer === 0 }"
+            :class="{ 'item-active': activePowerup === 'hammer', disabled: powerups.amount === 0 }"
             @click="selectPowerup('hammer')"
           >
             <div class="item-left">
@@ -61,12 +62,11 @@
               </div>
               <span class="item-label">{{ t('game.powerups.hammer') }}</span>
             </div>
-            <div class="item-count" v-if="powerups.hammer > 0">{{ powerups.hammer }}</div>
-          </button>
+            </button>
 
           <button 
             class="dropdown-item" 
-            :class="{ disabled: powerups.shuffle === 0 }"
+            :class="{ disabled: powerups.amount === 0 }"
             @click="selectPowerup('shuffle')"
           >
             <div class="item-left">
@@ -81,12 +81,11 @@
               </div>
               <span class="item-label">{{ t('game.powerups.shuffle') }}</span>
             </div>
-            <div class="item-count" v-if="powerups.shuffle > 0">{{ powerups.shuffle }}</div>
           </button>
 
           <button 
             class="dropdown-item" 
-            :class="{ disabled: powerups.plus_row === 0 }"
+            :class="{ disabled: powerups.amount === 0 }"
             @click="selectPowerup('plus_row')"
           >
             <div class="item-left">
@@ -99,8 +98,8 @@
               </div>
               <span class="item-label">{{ t('game.powerups.plus_row') }}</span>
             </div>
-            <div class="item-count" v-if="powerups.plus_row > 0">{{ powerups.plus_row }}</div>
           </button>
+
         </div>
       </Transition>
     </div>
@@ -128,15 +127,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from '../composables/useI18n';
 import type { PowerupType, PowerupState } from '../types';
 
-const emit = defineEmits(['undo', 'hint', 'add', 'toggle-bot', 'restart', 'use-powerup']);
-
-const { t } = useI18n();
-
-const props = defineProps<{
+defineProps<{
   canUndo: boolean;
   isGameOver: boolean;
   isBotActive: boolean;
@@ -145,9 +140,9 @@ const props = defineProps<{
   isDebug: boolean;
 }>();
 
-const totalPowerups = computed(() => {
-  return props.powerups.hammer + props.powerups.shuffle + props.powerups.plus_row;
-});
+const emit = defineEmits(['undo', 'hint', 'add', 'toggle-bot', 'restart', 'use-powerup']);
+
+const { t } = useI18n();
 
 const showDropdown = ref(false);
 const menuRef = ref<HTMLElement | null>(null);
@@ -295,26 +290,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
   display: flex;
   align-items: center;
   color: inherit;
-}
-
-.item-count {
-  background-color: rgb(var(--rgb-red));
-  color: rgb(var(--rgb-white));
-  font-size: 0.9rem;
-  font-weight: 800;
-  min-width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 12px;
-  flex-shrink: 0;
-}
-
-.item-active .item-count {
-  background-color: rgb(var(--rgb-blue));
-  color: rgb(var(--rgb-white));
 }
 
 .fade-up-enter-active,

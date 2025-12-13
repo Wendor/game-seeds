@@ -188,7 +188,6 @@ body {
   overflow: hidden; 
   background-color: var(--bg-main);
   transition: background-color 0.3s;
-  
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   user-select: none;
@@ -275,5 +274,15 @@ body {
 
 body.dark-mode .btn-secondary { 
   border-color: rgb(var(--rgb-slate-700)); 
+}
+</style>
+
+<style scoped>
+.app-container {
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 </style>

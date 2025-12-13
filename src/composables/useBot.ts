@@ -39,7 +39,6 @@ export function useBot(deps: BotDependencies) {
     const { cells, powerups, powerupActions, gameActions, historyActions, uiActions, gameState } = deps;
     const { t } = useI18n();
 
-    // Используем переданный ref или создаем новый
     const isBotActive = deps.isBotActiveRef || ref(false);
 
     let worker: Worker | null = null;
@@ -77,8 +76,11 @@ export function useBot(deps: BotDependencies) {
         const plainCells = toRaw(cells.value).map(c => toRaw(c));
         const activeWorker = initWorker();
 
-        const hasHammer = powerups.value.hammer > 0;
-        activeWorker.postMessage({ type: 'find', cells: plainCells, checkHammer: hasHammer });
+        // ИСПРАВЛЕНО: Проверяем общий пул, а не .hammer
+        const hasCharges = powerups.value.amount > 0;
+
+        // Если заряды есть, просим воркер поискать цель для молотка
+        activeWorker.postMessage({ type: 'find', cells: plainCells, checkHammer: hasCharges });
     };
 
     const handleWorkerMessage = async (e: MessageEvent) => {
@@ -114,39 +116,41 @@ export function useBot(deps: BotDependencies) {
 
             } else {
                 // === ХОДОВ НЕТ: ИСПОЛЬЗУЕМ БОНУСЫ ===
-                // 1. Молоток
-                if (typeof hammerTarget === 'number' && powerups.value.hammer > 0) {
+
+                // ИСПРАВЛЕНО: Проверяем powerups.value.amount
+                const hasCharges = powerups.value.amount > 0;
+
+                // 1. Молоток (Если есть цель И есть общий заряд)
+                if (typeof hammerTarget === 'number' && hasCharges) {
                     uiActions.scrollToCell(hammerTarget);
-                    // Уменьшили задержку перед ударом
                     await new Promise(r => setTimeout(r, 100));
                     if (!isBotActive.value) return;
 
                     powerupActions.handlePowerupClick('hammer');
                     powerupActions.handleUserCellClick(hammerTarget);
 
-                    botLoopTimeout = setTimeout(requestMove, 100);
+                    botLoopTimeout = setTimeout(requestMove, 600);
                     return;
                 }
 
-                // 2. Перемешивание
-                if (powerups.value.shuffle > 0) {
+                // 2. Перемешивание (Если есть общий заряд, но молоток не пригодился)
+                if (hasCharges) {
                     await new Promise(r => setTimeout(r, 100));
                     if (!isBotActive.value) return;
 
                     powerupActions.handlePowerupClick('shuffle');
 
-                    botLoopTimeout = setTimeout(requestMove, 100);
+                    botLoopTimeout = setTimeout(requestMove, 800);
                     return;
                 }
 
-                // 3. Добавление строк
+                // 3. Добавление строк (когда зарядов нет)
                 if (cells.value.length >= GAME_CONFIG.MAX_CELLS) {
                     uiActions.showToast(t('game.botGiveUp'));
                     stopBot();
                     return;
                 }
 
-                // Уменьшили задержку перед добавлением
                 await new Promise(r => setTimeout(r, 100));
                 if (!isBotActive.value) return;
 

@@ -5,6 +5,8 @@ export const GAME_CONFIG = {
     MAX_CELLS: 40000,
     BOT_SEARCH_LIMIT: 3000,
 
+    POWERUPS_COUNT: 3,
+
     // Тайминги UI (мс)
     TOAST_DURATION: 2000,
     HINT_DURATION: 2000,

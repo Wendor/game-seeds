@@ -1,45 +1,61 @@
-// src/composables/usePowerups.ts
 import { ref } from 'vue';
+import { GAME_CONFIG } from '../config';
 import type { PowerupType, PowerupState } from '../types';
 
 export function usePowerups() {
     const powerups = ref<PowerupState>({
-        hammer: 2,
-        shuffle: 2,
-        plus_row: 2
+        amount: GAME_CONFIG.POWERUPS_COUNT
     });
 
     const activePowerup = ref<PowerupType | null>(null);
 
+    // Списываем из общего пула
     const usePowerup = (type: PowerupType): boolean => {
-        if (powerups.value[type] > 0) {
-            powerups.value[type]--;
+        if (powerups.value.amount > 0) {
+            powerups.value.amount--;
             return true;
         }
         return false;
     };
 
+    // Возвращаем в общий пул
     const restorePowerup = (type: PowerupType) => {
-        powerups.value[type]++;
+        powerups.value.amount++;
     };
 
     const toggleActive = (type: PowerupType) => {
         if (activePowerup.value === type) {
             activePowerup.value = null;
         } else {
-            if (powerups.value[type] > 0) {
+            // Проверяем общий баланс
+            if (powerups.value.amount > 0) {
                 activePowerup.value = type;
             }
         }
     };
 
     const resetPowerups = () => {
-        powerups.value = { hammer: 2, shuffle: 2, plus_row: 2 };
+        powerups.value = { amount: 3 };
         activePowerup.value = null;
     };
 
-    const initPowerups = (savedState: PowerupState) => {
-        powerups.value = { ...savedState };
+    const initPowerups = (savedState: any) => {
+        if (savedState) {
+            // Если это новый формат
+            if (typeof savedState.amount === 'number') {
+                powerups.value.amount = savedState.amount;
+            }
+            // МИГРАЦИЯ: Если это старый формат (с отдельными полями), суммируем их
+            else if ('hammer' in savedState) {
+                const total = (savedState.hammer || 0) + (savedState.shuffle || 0) + (savedState.plus_row || 0);
+                powerups.value.amount = total;
+            }
+            else {
+                powerups.value.amount = GAME_CONFIG.POWERUPS_COUNT;
+            }
+        } else {
+            powerups.value.amount = GAME_CONFIG.POWERUPS_COUNT;
+        }
     };
 
     return {

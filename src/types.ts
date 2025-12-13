@@ -49,7 +49,5 @@ export interface LevelConfig {
 export type PowerupType = 'hammer' | 'shuffle' | 'plus_row';
 
 export interface PowerupState {
-    hammer: number;
-    shuffle: number;
-    plus_row: number;
+    amount: number;
 }

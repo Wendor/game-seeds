@@ -52,6 +52,7 @@ const dictionary = {
             defeatTitle: 'Игра окончена',
             defeatMsg: 'Поле заполнено, и доступных ходов больше нет.',
             tryAgain: 'Попробовать снова',
+            nextLevel: 'След. уровень',
             powerups: {
                 title: 'Бонусы',
                 hammer: 'Удалить ячейку',
@@ -132,6 +133,7 @@ const dictionary = {
             defeatTitle: 'Game Over',
             defeatMsg: 'The board is full and there are no moves left.',
             tryAgain: 'Try Again',
+            extLevel: 'Next Level',
             powerups: {
                 title: 'Powerups',
                 hammer: 'Destroy cell',

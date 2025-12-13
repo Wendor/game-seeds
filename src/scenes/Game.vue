@@ -103,14 +103,35 @@
         </div>
 
         <div class="final-time">{{ t('game.time', { time: formattedTime }) }}</div>
+        
         <div class="win-actions">
-          <button @click="shareResult" class="btn btn-success btn-lg" style="gap: 8px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
-            {{ t('game.share') }}
-          </button>
-          <button @click="$emit('back')" class="btn btn-primary btn-lg">
-            {{ exitButtonLabel }}
-          </button>
+          <div class="primary-actions">
+            <button 
+              v-if="nextLevel" 
+              @click="handleNextLevel" 
+              class="btn btn-success btn-big btn-grow" 
+            >
+              {{ t('game.nextLevel') }}
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </div>
+
+          <div class="secondary-actions">
+            <button 
+              @click="shareResult" 
+              class="btn btn-primary btn-big btn-square"
+              :aria-label="t('game.share')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+            </button>
+            
+            <button 
+              @click="$emit('back')" 
+              class="btn btn-secondary btn-big btn-grow"
+            >
+              {{ exitButtonLabel }}
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -136,6 +157,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import type { GameMode, LevelConfig, PowerupType } from '../types';
 import { GAME_CONFIG } from '../config';
+import { LEVELS } from '../data/levels';
 
 // Composables
 import { useGameLogic } from '../composables/useGameLogic';
@@ -171,7 +193,7 @@ const props = defineProps<{
   levelConfig?: LevelConfig;
 }>();
 
-const emit = defineEmits(['back', 'restart']);
+const emit = defineEmits(['back', 'restart', 'next-level']);
 
 // --- ТЕКСТ КНОПОК ---
 const backButtonLabel = computed(() => {
@@ -184,8 +206,9 @@ const exitButtonLabel = computed(() => {
 
 const levelStars = ref(0);
 const hasGameStarted = ref(false);
+const isStatsRecorded = ref(false);
 
-// === ВАЖНО: Объявляем isBotActive здесь, чтобы разорвать цикл зависимостей ===
+// Объявляем здесь, чтобы избежать циклических зависимостей
 const isBotActive = ref(false);
 
 const { 
@@ -198,7 +221,6 @@ const { powerups, activePowerup, usePowerup, restorePowerup, toggleActive, reset
 
 const { secondsElapsed, formattedTime, startTimer, stopTimer, resetTimer } = useTimer();
 
-// Передаем restorePowerup в useHistory, чтобы Undo знал как вернуть предмет
 const { recordMatch, recordAdd, recordClean, recordShuffle, recordPowerupUsage, popHistory, undo, clearHistory, hasHistory, history } = useHistory(cells, restorePowerup);
 const { toastMessage, showToast, playSound, haptic } = useFeedback();
 
@@ -207,6 +229,25 @@ const showDefeatModal = ref(false);
 
 const activeCount = computed(() => cells.value.filter(c => c.status !== 'crossed').length);
 const isGameOver = computed(() => nextId.value > 0 && activeCount.value === 0);
+
+// --- СЛЕДУЮЩИЙ УРОВЕНЬ ---
+const nextLevel = computed(() => {
+  if (props.mode !== 'levels' || !props.levelConfig) return null;
+  const currentIndex = LEVELS.findIndex(l => l.id === props.levelConfig?.id);
+  if (currentIndex === -1 || currentIndex >= LEVELS.length - 1) return null;
+  return LEVELS[currentIndex + 1];
+});
+
+const handleNextLevel = () => {
+  if (nextLevel.value) {
+    emit('next-level', nextLevel.value);
+  }
+};
+
+// Перезапуск игры при смене уровня (из пропсов)
+watch(() => props.levelConfig, () => {
+  initGame();
+});
 
 const ensureGameStarted = () => {
   if (!hasGameStarted.value) {
@@ -318,7 +359,6 @@ const {
     gameActions: { canMatch, findNeighbors, cleanEmptyRows: animateAndClean, updateLinksAfterCross },
     historyActions: { recordMatch, recordClean, popHistory },
     uiActions: { playSound, showToast, haptic, clearHintUI },
-    // Теперь передаем переменную, объявленную выше
     state: { isBotActive }
 });
 
@@ -326,27 +366,24 @@ const {
 const handlePowerupClick = (type: PowerupType, byBot: boolean = false) => {
     ensureGameStarted();
     if (isGameOver.value) return;
-    // Разрешаем выполнение, если это бот
     if (isBotActive.value && !byBot) return;
     
-    if (powerups.value[type] <= 0) return;
+    // Проверка общего баланса
+    if (powerups.value.amount <= 0) return;
 
     if (type === 'hammer') {
         toggleActive('hammer');
-        // Не показываем тост игроку, если играет бот (опционально)
         if (activePowerup.value === 'hammer' && !byBot) {
             showToast(t('game.powerups.useHammer') || 'Выберите ячейку');
         }
     } 
     else if (type === 'shuffle') {
         if (usePowerup('shuffle')) {
-            // 1. Анимация
             cells.value.forEach(c => { 
                 if (c.status !== 'crossed') c.isShuffling = true; 
             });
             playSound('select');
 
-            // 2. Подмена
             setTimeout(() => {
                 recordShuffle();
                 shuffleBoard();
@@ -357,7 +394,6 @@ const handlePowerupClick = (type: PowerupType, byBot: boolean = false) => {
                 nextTick(updateGhosts);
             }, 250);
 
-            // 3. Завершение
             setTimeout(() => {
                 cells.value.forEach(c => { delete c.isShuffling; });
             }, 500);
@@ -396,7 +432,6 @@ const handlePowerupClick = (type: PowerupType, byBot: boolean = false) => {
 const handleUserCellClick = (index: number, byBot: boolean = false) => {
     ensureGameStarted();
 
-    // 1. Если активен режим Молотка
     if (activePowerup.value === 'hammer') {
         const cell = cells.value[index];
         if (cell && cell.status !== 'crossed') {
@@ -419,12 +454,11 @@ const handleUserCellClick = (index: number, byBot: boolean = false) => {
         return;
     }
 
-    // 2. Обычный клик (передаем флаг дальше)
     playerHandleClick(index, byBot);
 };
 
 const { getCellClasses, getGroupClass, isNeighbor, isMatchable } = useCellStyling({
-    isBotActive, // Теперь переменная существует
+    isBotActive,
     neighborIndices,
     selectedIndex,
     hintIndices,
@@ -438,18 +472,18 @@ const handleGhostClick = (item: GhostItem) => {
   }
 };
 
-// Объект действий для бота
+// Объект для бота
 const powerupActions = {
     usePowerup,
     handlePowerupClick: (type: PowerupType) => handlePowerupClick(type, true),
-    handleUserCellClick: (index: number) => handleUserCellClick(index, true),
+    handleUserCellClick: (index: number) => handleUserCellClick(index, true)
 };
 
 const { toggleBot, stopBot } = useBot({
     cells,
     powerups,
     powerupActions,
-    isBotActiveRef: isBotActive, // Передаем реф
+    isBotActiveRef: isBotActive,
     gameActions: { addLines: addLinesWithAnimation, cleanEmptyRows: animateAndClean, updateLinksAfterCross },
     historyActions: { recordMatch, recordAdd, recordClean, popHistory },
     uiActions: { playSound, showToast, scrollToCell },
@@ -475,6 +509,14 @@ watch(history, () => {
         save(props.mode, powerups.value, props.levelConfig?.id); 
     }
 }, { deep: false });
+
+// Статистика: считаем игру начатой только после первого хода
+watch(() => history.value.length, (len) => {
+    if (len > 0 && !isStatsRecorded.value) {
+        incrementGamesStarted(props.mode);
+        isStatsRecorded.value = true;
+    }
+});
 
 const performUndo = () => {
   if (undo()) {
@@ -533,6 +575,13 @@ const initGame = () => {
         if (parsed.history) {
             clearHistory();
             parsed.history.forEach((h: any) => history.value.push(h));
+            if (history.value.length > 0) {
+                isStatsRecorded.value = true;
+            } else {
+                isStatsRecorded.value = false;
+            }
+        } else {
+             isStatsRecorded.value = false;
         }
         
         if (parsed.time > 0) {
@@ -545,8 +594,9 @@ const initGame = () => {
     }
   }
   
+  // Новая игра
+  isStatsRecorded.value = false;
   resetPowerups();
-  incrementGamesStarted(props.mode);
   generateCells(props.mode, props.levelConfig?.pattern);
   resetTimer(0);
   clearSave();
@@ -595,7 +645,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Дополнительные стили для молотка */
 .cell.hammer-target {
   cursor: crosshair;
   animation: pulse-red 1s infinite;
@@ -635,5 +684,53 @@ onUnmounted(() => {
 @keyframes popIn {
     0% { opacity: 0; transform: scale(0.5); }
     100% { opacity: 1; transform: scale(1.1); }
+}
+
+.win-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 10px;
+}
+
+.primary-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.secondary-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.btn-big {
+  height: 56px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  padding: 0 24px;
+}
+
+.btn-big svg {
+  width: 24px;
+  height: 24px;
+}
+
+.btn-square {
+  width: 56px;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.btn-grow {
+  flex: 1;
+  gap: 8px;
 }
 </style>
