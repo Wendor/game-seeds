@@ -7,6 +7,9 @@
       </h2>
 
       <div class="tabs">
+        <button @click="activeTab = 'levels'" class="tab-btn" :class="{ active: activeTab === 'levels' }">
+          {{ t('stats.levels') }}
+        </button>
         <button @click="activeTab = 'easy'" class="tab-btn" :class="{ active: activeTab === 'easy' }">
           {{ t('stats.easy') }}
         </button>
@@ -15,9 +18,6 @@
         </button>
         <button @click="activeTab = 'random'" class="tab-btn" :class="{ active: activeTab === 'random' }">
           {{ t('stats.random') }}
-        </button>
-        <button @click="activeTab = 'levels'" class="tab-btn" :class="{ active: activeTab === 'levels' }">
-          Фигуры
         </button>
       </div>
 
@@ -79,7 +79,7 @@ const { t, currentLang } = useI18n();
 const { getStats, getAllRecords } = useStatistics();
 defineEmits(['close']);
 
-const activeTab = ref<GameMode>('easy');
+const activeTab = ref<GameMode>('levels');
 const allRecords = ref<GameRecord[]>([]);
 
 // Исправлена инициализация, добавлены levels

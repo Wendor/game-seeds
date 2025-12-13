@@ -283,7 +283,7 @@ onBeforeUnmount(() => { window.removeEventListener('beforeinstallprompt', handle
 
 .app-version {
   margin-top: 30px;
-  margin-bottom: 10px;
+  padding-bottom: 20px;
   font-size: 0.75rem;
   color: var(--text-muted);
   opacity: 0.5;
