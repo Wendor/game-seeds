@@ -1,6 +1,6 @@
 <template>
   <div class="app-wrapper" :class="{ dark: isDark }">
-    <Transition name="fade" mode="out-in">
+    <Transition :name="transitionName" mode="out-in">
       
       <MainMenu 
         v-if="currentScreen === 'menu'" 
@@ -37,7 +37,7 @@
         :key="gameKey"
         @back="handleGameBack"
         @restart="handleRestart"
-        @next-level="handleStartLevel"
+        @next-level="handleStartLevel" 
       />
       
     </Transition>
@@ -47,14 +47,21 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import MainMenu from './scenes/MainMenu.vue';
-import Rules from './scenes/Rules.vue';
 import Game from './scenes/Game.vue';
-import Leaderboard from './scenes/Leaderboard.vue';
 import Levels from './scenes/Levels.vue';
+import Rules from './scenes/Rules.vue';
+import Leaderboard from './scenes/Leaderboard.vue';
+import { useI18n } from './composables/useI18n';
 import type { GameMode, LevelConfig, ScreenName } from './types';
 
-import { useI18n } from './composables/useI18n';
-
+// Карта глубины экранов (0 - самый верхний уровень)
+const SCREEN_DEPTH: Record<ScreenName, number> = {
+  menu: 0,
+  levels: 1,
+  rules: 1,
+  leaderboard: 1,
+  game: 2
+};
 
 // Состояние
 const currentScreen = ref<ScreenName>('menu');
@@ -63,32 +70,26 @@ const activeGameMode = ref<GameMode>('classic');
 const isResumeGame = ref(false);
 const gameKey = ref(0);
 const activeLevelConfig = ref<LevelConfig | undefined>(undefined);
+const transitionName = ref('fade');
 
-// Композаблы
 const { initLanguage } = useI18n();
 
 // --- ЛОГИКА КНОПКИ НАЗАД (HISTORY API) ---
 
-// Флаг, чтобы отличать программный переход от нажатия кнопки "Назад" в браузере
 const isPopState = ref(false);
 
-// Обработчик системной кнопки "Назад"
 const handlePopState = (event: PopStateEvent) => {
   isPopState.value = true;
-  
   if (event.state && event.state.screen) {
     currentScreen.value = event.state.screen;
   } else {
-    // Если истории нет, возвращаемся в меню
     currentScreen.value = 'menu';
   }
-  
   nextTick(() => {
     isPopState.value = false;
   });
 };
 
-// Функция для навигации "Назад" через интерфейс
 const goBack = () => {
   if (window.history.length > 1) {
     window.history.back();
@@ -97,14 +98,20 @@ const goBack = () => {
   }
 };
 
-// Следим за переключением экранов, чтобы добавлять записи в историю
-watch(currentScreen, (newScreen) => {
-  // Если смена экрана произошла НЕ из-за кнопки "Назад" (isPopState === false)
-  if (!isPopState.value) {
-    // Если мы уходим из меню или идем глубже, пушим состояние
-    if (newScreen !== 'menu') {
-      window.history.pushState({ screen: newScreen }, '');
-    }
+watch(currentScreen, (newScreen, oldScreen) => {
+  const newDepth = SCREEN_DEPTH[newScreen] || 0;
+  const oldDepth = SCREEN_DEPTH[oldScreen as ScreenName] || 0;
+
+  if (newDepth > oldDepth) {
+    transitionName.value = 'slide-left';
+  } else if (newDepth < oldDepth) {
+    transitionName.value = 'slide-right';
+  } else {
+    transitionName.value = 'fade';
+  }
+
+  if (!isPopState.value && newScreen !== 'menu') {
+    window.history.pushState({ screen: newScreen }, '');
   }
 });
 
@@ -127,18 +134,12 @@ const updateBodyClass = () => {
 const handleStartGame = (mode: GameMode) => {
   activeGameMode.value = mode;
   isResumeGame.value = false;
-  
-  // Если режим не уровни, очищаем конфиг уровня
-  if (mode !== 'levels') {
-    activeLevelConfig.value = undefined;
-  }
-  
-  gameKey.value++; // Форсируем пересоздание компонента Game
+  if (mode !== 'levels') activeLevelConfig.value = undefined;
+  gameKey.value++;
   currentScreen.value = 'game';
 };
 
 const handleContinueGame = () => {
-  // Устанавливаем флаг продолжения. Сам компонент Game загрузит сохранение при маунте.
   isResumeGame.value = true;
   gameKey.value++;
   currentScreen.value = 'game';
@@ -155,12 +156,10 @@ const handleRestart = () => {
 };
 
 const handleGameBack = () => {
-  // Используем общую функцию навигации назад
   goBack();
 };
 
 onMounted(() => {
-  // Инициализация темы
   const savedTheme = localStorage.getItem('seeds-theme');
   if (savedTheme) {
     isDark.value = savedTheme === 'dark';
@@ -169,10 +168,8 @@ onMounted(() => {
   }
   updateBodyClass();
 
-  // Инициализация языка
   initLanguage();
 
-  // Инициализация History API
   if (!window.history.state) {
     window.history.replaceState({ screen: 'menu' }, '');
   }
@@ -183,7 +180,6 @@ onUnmounted(() => {
   window.removeEventListener('popstate', handlePopState);
 });
 </script>
-
 
 <style>
 *, *::before, *::after {
@@ -228,7 +224,7 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* --- АНИМАЦИЯ ПЕРЕХОДОВ --- */
+/* --- АНИМАЦИЯ ПЕРЕХОДОВ (БАЗОВАЯ) --- */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -242,6 +238,35 @@ body {
 .fade-leave-to {
   opacity: 0;
   transform: scale(1.02);
+}
+
+/* --- ДОБАВЛЕНО: АНИМАЦИИ НАВИГАЦИИ (СЛАЙДЫ) --- */
+/* Slide Left (Вход ВПЕРЕД) */
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+/* Slide Right (Вход НАЗАД) */
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 
 /* UI KIT (Кнопки) */
