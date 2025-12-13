@@ -12,6 +12,7 @@ export interface Cell {
     down?: number | null;
     isDeleting?: boolean;
     isNew?: boolean;
+    isShuffling?: boolean;
 }
 
 export interface GameRecord {

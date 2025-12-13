@@ -35,8 +35,10 @@
         ]"
         :disabled="isGameOver || isBotActive"
         @click="toggleDropdown"
-        :title="t('game.powerups.title')"
+        :title="t('game.powerups.title') || 'Бонусы'"
       >
+        <div v-if="totalPowerups > 0" class="total-badge">{{ totalPowerups }}</div>
+
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
@@ -44,7 +46,6 @@
 
       <Transition name="fade-up">
         <div v-if="showDropdown" class="dropdown-content">
-          
           <button 
             class="dropdown-item" 
             :class="{ 'item-active': activePowerup === 'hammer', disabled: powerups.hammer === 0 }"
@@ -100,12 +101,12 @@
             </div>
             <div class="item-count" v-if="powerups.plus_row > 0">{{ powerups.plus_row }}</div>
           </button>
-
         </div>
       </Transition>
     </div>
     
     <button 
+      v-if="isDebug"
       @click="$emit('toggle-bot')" 
       class="btn btn-icon" 
       :class="isBotActive ? 'btn-danger' : 'btn-secondary'" 
@@ -127,21 +128,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useI18n } from '../composables/useI18n';
 import type { PowerupType, PowerupState } from '../types';
 
-defineProps<{
+const emit = defineEmits(['undo', 'hint', 'add', 'toggle-bot', 'restart', 'use-powerup']);
+
+const { t } = useI18n();
+
+const props = defineProps<{
   canUndo: boolean;
   isGameOver: boolean;
   isBotActive: boolean;
   powerups: PowerupState;
   activePowerup: PowerupType | null;
+  isDebug: boolean;
 }>();
 
-const emit = defineEmits(['undo', 'hint', 'add', 'toggle-bot', 'restart', 'use-powerup']);
-
-const { t } = useI18n();
+const totalPowerups = computed(() => {
+  return props.powerups.hammer + props.powerups.shuffle + props.powerups.plus_row;
+});
 
 const showDropdown = ref(false);
 const menuRef = ref<HTMLElement | null>(null);
@@ -205,6 +211,26 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
   100% { box-shadow: 0 0 0 0 rgba(var(--rgb-blue), 0); }
 }
 
+.total-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: rgb(var(--rgb-red));
+  color: rgb(var(--rgb-white));
+  font-size: 0.7rem;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--header-bg);
+  z-index: 10;
+  padding: 0 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
 .dropdown-content {
   position: absolute;
   bottom: 120%;
@@ -218,7 +244,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
   flex-direction: column;
   gap: 4px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  min-width: 240px; /* Сделали чуть шире */
+  min-width: 240px;
   z-index: 60;
 }
 
@@ -226,13 +252,13 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
   width: 100%;
   background: transparent;
   border: none;
-  border-radius: 12px; /* Чуть больше скругление */
+  border-radius: 12px;
   padding: 10px 12px;
   cursor: pointer;
   color: var(--text-main);
   transition: background 0.2s;
   display: flex;
-  justify-content: space-between; /* Текст и счетчик по разным краям */
+  justify-content: space-between;
   align-items: center;
   text-align: left;
 }
@@ -256,7 +282,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1; /* Занимает все свободное место */
+  flex: 1;
 }
 
 .item-label {
@@ -271,10 +297,9 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
   color: inherit;
 }
 
-/* Новый стиль для счетчика */
 .item-count {
-  background-color: var(--btn-sec-bg); /* Серый фон */
-  color: var(--text-muted);
+  background-color: rgb(var(--rgb-red));
+  color: rgb(var(--rgb-white));
   font-size: 0.9rem;
   font-weight: 800;
   min-width: 28px;
@@ -283,11 +308,10 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 12px; /* Отступ от текста */
-  flex-shrink: 0; /* Чтобы не сжимался */
+  margin-left: 12px;
+  flex-shrink: 0;
 }
 
-/* Если пункт активен, красим счетчик в синий */
 .item-active .item-count {
   background-color: rgb(var(--rgb-blue));
   color: rgb(var(--rgb-white));

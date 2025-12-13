@@ -1,4 +1,3 @@
-// src/composables/usePlayer.ts
 import { ref, type Ref } from 'vue';
 import type { Cell } from '../types';
 import { useI18n } from './useI18n';
@@ -10,7 +9,6 @@ interface PlayerDeps {
     gameActions: {
         canMatch: (idx1: number, idx2: number) => boolean;
         findNeighbors: (index: number) => number[];
-        // Разрешаем возвращать void для асинхронных операций
         cleanEmptyRows: () => number | void;
         updateLinksAfterCross: (idx1: number, idx2: number) => void;
     };
@@ -88,17 +86,14 @@ export function usePlayer(deps: PlayerDeps) {
             historyActions.recordClean();
             const result = gameActions.cleanEmptyRows();
 
-            // Если вернулось число (синхронная очистка)
             if (typeof result === 'number') {
                 if (result > 0) {
-                    uiActions.showToast(result === 1 ? t('game.cleared') : t('game.clearedMulti', { n: result }));
+                    // Убрали тост
                     uiActions.playSound('add');
                 } else {
                     historyActions.popHistory();
                 }
             }
-            // Если вернулся void (асинхронная анимация), мы удаляем превентивную запись Clean,
-            // так как animateAndClean сама создаст её в нужный момент.
             else {
                 historyActions.popHistory();
             }

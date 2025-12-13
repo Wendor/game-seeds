@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'; // Добавлены импорты
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { LEVELS } from '../data/levels';
 import { useStatistics } from '../composables/useStatistics';
 import type { LevelConfig } from '../types';
@@ -59,7 +59,6 @@ const levels = LEVELS;
 const containerRef = ref<HTMLElement | null>(null);
 const SCROLL_KEY = 'seeds-levels-scroll-pos';
 
-// Восстанавливаем позицию при входе
 onMounted(() => {
   const savedPos = sessionStorage.getItem(SCROLL_KEY);
   if (savedPos && containerRef.value) {
@@ -67,7 +66,6 @@ onMounted(() => {
   }
 });
 
-// Сохраняем позицию перед уходом
 onBeforeUnmount(() => {
   if (containerRef.value) {
     sessionStorage.setItem(SCROLL_KEY, String(containerRef.value.scrollTop));
@@ -77,7 +75,6 @@ onBeforeUnmount(() => {
 
 const getStars = (id: string) => getLevelStars(id);
 
-// Логика блокировки
 const isLocked = (index: number) => {
   if (index === 0) return false;
   
@@ -148,15 +145,19 @@ const handlePlay = (level: LevelConfig, index: number) => {
   min-height: 100px; 
 }
 
+/* --- СТИЛИ КНОПКИ УРОВНЯ (ФИОЛЕТОВАЯ ТЕМА) --- */
 .level-btn {
   width: 100%;
   aspect-ratio: 1;
   border: none;
   border-radius: 16px;
-  background-color: var(--cell-bg);
-  border: 1px solid var(--cell-border);
-  box-shadow: 0 4px 0 var(--border-color);
+  
+  /* Фиолетовый оттенок по умолчанию */
+  background-color: rgba(var(--rgb-violet), 0.08); 
+  border: 1px solid rgba(var(--rgb-violet), 0.3);
   color: var(--text-main);
+  box-shadow: 0 4px 0 rgba(var(--rgb-violet), 0.2);
+  
   font-size: 1.8rem;
   font-weight: 800;
   cursor: pointer;
@@ -169,16 +170,17 @@ const handlePlay = (level: LevelConfig, index: number) => {
 
 .level-btn:active:not(:disabled) {
   transform: translateY(4px);
-  box-shadow: 0 0 0 var(--border-color);
+  box-shadow: 0 0 0 rgba(var(--rgb-violet), 0.2);
 }
 
+/* Заблокированный уровень - остается серым */
 .level-btn:disabled {
   background-color: var(--btn-sec-bg);
   color: var(--text-muted);
   box-shadow: none;
   border-color: transparent;
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .lock-icon {
@@ -206,12 +208,24 @@ const handlePlay = (level: LevelConfig, index: number) => {
   opacity: 1;
 }
 
+/* --- DARK MODE --- */
 body.dark-mode .level-btn {
-  box-shadow: 0 4px 0 var(--cell-border);
+  /* Более светлый фиолетовый текст и фон для темной темы */
+  background-color: rgba(var(--rgb-violet), 0.15);
+  border-color: rgba(var(--rgb-violet), 0.4);
+  box-shadow: 0 4px 0 rgba(var(--rgb-violet), 0.25);
 }
+
 body.dark-mode .level-btn:active:not(:disabled) {
   box-shadow: none;
 }
+
+body.dark-mode .level-btn:disabled {
+  background-color: var(--btn-sec-bg);
+  border-color: transparent;
+  box-shadow: none;
+}
+
 body.dark-mode .star-mini { color: var(--text-main); }
 body.dark-mode .star-mini.filled { color: rgb(var(--rgb-yellow)); }
 </style>

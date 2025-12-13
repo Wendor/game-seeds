@@ -510,3 +510,28 @@ body.dark-mode .ghost-cell.is-matchable {
     background: transparent;
     box-shadow: none;
 }
+
+/* Анимация перемешивания */
+.cell.shuffling {
+    animation: shuffleAnim 0.5s ease-in-out;
+}
+
+@keyframes shuffleAnim {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(0.1);
+        opacity: 0.3;
+        /* Скрываем контент в момент подмены */
+        color: transparent;
+        background-color: var(--border-color);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

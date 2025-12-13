@@ -53,9 +53,12 @@ import Levels from './scenes/Levels.vue';
 import type { GameMode, LevelConfig } from './types';
 import { useI18n } from './composables/useI18n';
 import { LEVELS } from './data/levels';
+import { useDebug } from './composables/useDebug';
 
 const { initLanguage } = useI18n();
+const { initDebug } = useDebug();
 initLanguage();
+initDebug();
 
 type ScreenType = 'menu' | 'rules' | 'game' | 'leaderboard' | 'levels';
 

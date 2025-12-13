@@ -121,6 +121,7 @@
       :is-bot-active="isBotActive"
       :powerups="powerups"
       :active-powerup="activePowerup"
+      :is-debug="isDebug" 
       @undo="performUndo"
       @hint="showNextHint"
       @add="performAddLines"
@@ -150,6 +151,7 @@ import { useStatistics } from '../composables/useStatistics';
 import { useGridVirtualization } from '../composables/useGridVirtualization';
 import { useCellStyling } from '../composables/useCellStyling';
 import { usePowerups } from '../composables/usePowerups';
+import { useDebug } from '../composables/useDebug';
 
 // Components
 import Toast from '../components/Toast.vue';
@@ -161,6 +163,7 @@ import '../assets/game.css';
 
 const { t } = useI18n();
 const { incrementGamesStarted, saveGameRecord, saveLevelStars } = useStatistics();
+const { isDebug } = useDebug();
 
 const props = defineProps<{ 
   mode: GameMode; 
@@ -229,14 +232,17 @@ const animateAndClean = (): number | void => {
     }
 
     if (indicesToDelete.length > 0) {
-        indicesToDelete.forEach(idx => { if (cells.value[idx]) cells.value[idx].isDeleting = true; });
+        indicesToDelete.forEach(idx => { 
+            // ИСПРАВЛЕНИЕ: Сохраняем в переменную для TS
+            const cell = cells.value[idx];
+            if (cell) cell.isDeleting = true; 
+        });
         updateGhosts();
 
         setTimeout(() => {
             recordClean();
             const removed = cleanEmptyRows();
             if (typeof removed === 'number' && removed > 0) {
-                showToast(removed === 1 ? t('game.cleared') : t('game.clearedMulti', { n: removed }));
                 playSound('add');
             }
             nextTick(updateGhosts);
@@ -266,7 +272,8 @@ const addLinesWithAnimation = (): number => {
     
     if (count > 0 && Array.isArray(addedIds)) {
       for (let i = oldLength; i < cells.value.length; i++) {
-          cells.value[i]!.isNew = true;
+          const cell = cells.value[i];
+          if (cell) cell.isNew = true;
       }
         recordAdd(addedIds);
         playSound('add');
@@ -284,7 +291,9 @@ const addLinesWithAnimation = (): number => {
 
         setTimeout(() => {
             for (let i = oldLength; i < cells.value.length; i++) {
-              if (cells.value[i]) delete cells.value[i]?.isNew;
+              // ИСПРАВЛЕНИЕ: Сохраняем в переменную для TS
+              const cell = cells.value[i];
+              if (cell) delete cell.isNew;
             }
         }, GAME_CONFIG.ANIMATION.ADD_DELAY);
     }
@@ -333,21 +342,56 @@ const handlePowerupClick = (type: PowerupType) => {
     } 
     else if (type === 'shuffle') {
         if (usePowerup('shuffle')) {
-            recordShuffle(); // Сначала записываем состояние ДО
-            shuffleBoard();  // Мешаем
-            recordPowerupUsage('shuffle'); // Записываем трату
-            playSound('add'); 
-            haptic.medium();
-            nextTick(updateGhosts);
+            // 1. Запускаем анимацию на всех активных клетках
+            cells.value.forEach(c => { 
+                if (c.status !== 'crossed') c.isShuffling = true; 
+            });
+            playSound('select');
+
+            // 2. В середине анимации меняем значения
+            setTimeout(() => {
+                recordShuffle();
+                shuffleBoard();
+                recordPowerupUsage('shuffle');
+                
+                playSound('add');
+                haptic.medium();
+                nextTick(updateGhosts);
+            }, 250);
+
+            // 3. Завершаем анимацию
+            setTimeout(() => {
+                cells.value.forEach(c => { delete c.isShuffling; });
+            }, 500);
         }
     }
     else if (type === 'plus_row') {
         if (usePowerup('plus_row')) {
+            const oldLength = cells.value.length;
             const addedIds = addRandomRow();
+            
+            for (let i = oldLength; i < cells.value.length; i++) {
+                const cell = cells.value[i];
+                if (cell) cell.isNew = true;
+            }
+
             recordAdd(addedIds); 
             recordPowerupUsage('plus_row');
             playSound('add');
-            nextTick(() => { measureDimensions(); scrollToBottom(); });
+            
+            nextTick(() => { 
+                measureDimensions(); 
+                scrollToBottom(); 
+                updateGhosts(); 
+            });
+
+            setTimeout(() => {
+                for (let i = oldLength; i < cells.value.length; i++) {
+                    // ИСПРАВЛЕНИЕ: Сохраняем в переменную для TS
+                    const cell = cells.value[i];
+                    if (cell) delete cell.isNew;
+                }
+            }, GAME_CONFIG.ANIMATION.ADD_DELAY);
         }
     }
 };
@@ -360,7 +404,6 @@ const handleUserCellClick = (index: number) => {
         const cell = cells.value[index];
         if (cell && cell.status !== 'crossed') {
             if (usePowerup('hammer')) {
-                // Записываем удаление одиночной ячейки как match (массив из 1 элемента)
                 history.value.push({ 
                     type: 'match', 
                     changes: [{ index, prevStatus: cell.status }] 
@@ -373,7 +416,7 @@ const handleUserCellClick = (index: number) => {
                 haptic.impact();
                 
                 animateAndClean(); 
-                toggleActive('hammer'); // Выключаем режим после использования
+                toggleActive('hammer'); 
             }
         }
         return;
@@ -412,7 +455,6 @@ const { save, load, clear: clearSave } = usePersistence('seeds-save', { cells, s
 
 let autoSaveInterval: ReturnType<typeof setInterval> | null = null;
 
-// Обновленный watch: сохраняем также powerups
 watch(history, () => { 
     if (!isGameOver.value) {
         save(props.mode, powerups.value, props.levelConfig?.id); 
@@ -458,7 +500,6 @@ const initGame = () => {
   resetSelection();
   clearHintUI();
   clearHistory();
-  // Не сбрасываем powerups здесь, так как логика зависит от загрузки сохранения
   levelStars.value = 0;
   hasGameStarted.value = false;
 
@@ -468,7 +509,6 @@ const initGame = () => {
         restoreCells(parsed.cells, parsed.nextId || 1000);
         resetTimer(parsed.time);
         
-        // Восстанавливаем бонусы или ставим дефолт, если сохранения старые
         if (parsed.powerups) {
             initPowerups(parsed.powerups);
         } else {
@@ -490,7 +530,6 @@ const initGame = () => {
     }
   }
   
-  // Если новая игра
   resetPowerups();
   incrementGamesStarted(props.mode);
   generateCells(props.mode, props.levelConfig?.pattern);
@@ -524,7 +563,6 @@ const shareResult = async () => {
 onMounted(() => {
   initGame();
   autoSaveInterval = setInterval(() => {
-    // Сохраняем, только если игра идет (есть активные ячейки)
     if (!isGameOver.value && activeCount.value > 0) {
         save(props.mode, powerups.value, props.levelConfig?.id);
     }

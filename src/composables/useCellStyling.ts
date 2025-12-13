@@ -39,6 +39,7 @@ export function useCellStyling(deps: CellStylingDeps) {
             'active': cell.status === 'active',
             'deleting': !!cell.isDeleting,
             'new-cell': !!cell.isNew,
+            'shuffling': !!cell.isShuffling,
             'is-void': cell.value === 0
         };
 
